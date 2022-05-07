@@ -1,0 +1,28 @@
+plugins {
+	id 'java'
+}
+
+group 'net.querz'
+version '1.0-SNAPSHOT'
+
+repositories {
+	mavenCentral()
+}
+
+ext {
+	junitVersion = '5.8.2'
+}
+
+tasks.withType(JavaCompile) {
+	options.encoding = 'UTF-8'
+}
+
+dependencies {
+
+	testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
+	testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
+}
+
+test {
+	useJUnitPlatform()
+}
