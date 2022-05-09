@@ -7,7 +7,7 @@ import net.querz.mca.MCAFileHandle;
 import net.querz.mca.MCCFileHandler;
 import net.querz.mca.seekable.SeekableFile;
 import net.querz.worldpruner.selection.Selection;
-import net.querz.worldpruner.util.Point;
+import net.querz.worldpruner.selection.Point;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

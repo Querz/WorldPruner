@@ -1,4 +1,4 @@
-package net.querz.worldpruner.util;
+package net.querz.worldpruner.selection;
 
 public record Point(int x, int z) {
 

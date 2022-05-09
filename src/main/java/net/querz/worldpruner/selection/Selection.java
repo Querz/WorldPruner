@@ -3,7 +3,7 @@ package net.querz.worldpruner.selection;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import net.querz.worldpruner.util.Point;
+
 import java.io.*;
 
 public class Selection {
