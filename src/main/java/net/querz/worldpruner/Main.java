@@ -1,8 +1,10 @@
 package net.querz.worldpruner;
 
 import net.querz.worldpruner.cli.ArgsParser;
+import net.querz.worldpruner.cli.Timer;
 import net.querz.worldpruner.prune.PruneData;
 import net.querz.worldpruner.prune.Pruner;
+import java.io.IOException;
 import java.util.Map;
 
 public class Main {
@@ -17,12 +19,17 @@ public class Main {
 
 
 // cmd --time <duration> --radius <int> --whitelist [csv]
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		Map<String, String> parsedArgs = ArgsParser.parse(args);
 
 		PruneData data = PruneData.parseArgs(parsedArgs);
 		System.out.println(data);
-		Pruner pruner = new Pruner(data.regionDir(), data.poiDir(), data.entitiesDir());
-		pruner.prune(data.inhabitedTime(), data.radius(), data.whitelist());
+		Pruner pruner = new Pruner(data);
+
+		Timer t = new Timer();
+
+		pruner.prune();
+
+		System.out.println("pruning took " + t);
 	}
 }

@@ -3,7 +3,6 @@ package net.querz.worldpruner.selection;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-
 import java.io.*;
 
 public class Selection {
@@ -92,12 +91,10 @@ public class Selection {
 	}
 
 	public void addChunk(Point chunk) {
-		long r = chunk.chunkToRegion().asLong();
-		long c = chunk.asLong();
-		addChunk(r, c);
+		addChunk(chunk.chunkToRegion().asLong(), chunk.asLong());
 	}
 
-	public void addChunk(long region, long chunk) {
+	protected void addChunk(long region, long chunk) {
 		if (selection.containsKey(region)) {
 			LongOpenHashSet chunks = selection.get(region);
 			if (chunks != null) {
@@ -113,6 +110,38 @@ public class Selection {
 		}
 	}
 
+	public LongOpenHashSet getSelectedChunks(Point region) {
+		if (inverted) {
+			if (selection.containsKey(region.asLong())) {
+				return invertChunks(region, selection.get(region.asLong()));
+			} else {
+				return null;
+			}
+		}
+		if (selection.containsKey(region.asLong())) {
+			return selection.get(region.asLong());
+		} else {
+			return new LongOpenHashSet(0);
+		}
+	}
+
+	private LongOpenHashSet invertChunks(Point region, LongOpenHashSet chunks) {
+		if (chunks == null) {
+			return new LongOpenHashSet(0);
+		}
+		LongOpenHashSet result = new LongOpenHashSet(1024 - chunks.size());
+		Point zero = region.regionToChunk();
+		for (int x = zero.x(); x < zero.x() + 32; x++) {
+			for (int z = zero.z(); z < zero.z() + 32; z++) {
+				long chunk = new Point(x, z).asLong();
+				if (!chunks.contains(chunk)) {
+					result.add(chunk);
+				}
+			}
+		}
+		return result;
+	}
+
 	public void merge(Selection other) {
 		for (Long2ObjectMap.Entry<LongOpenHashSet> entry : other.selection.long2ObjectEntrySet()) {
 			if (entry.getValue() == null) {
@@ -123,5 +152,18 @@ public class Selection {
 				}
 			}
 		}
+	}
+
+	public static String chunksToString(LongOpenHashSet chunks) {
+		if (chunks == null) {
+			return "null";
+		}
+		StringBuilder sb = new StringBuilder("[");
+		boolean first = true;
+		for (long l : chunks) {
+			sb.append(first ? "" : ", ").append(new Point(l));
+			first = false;
+		}
+		return sb.append("]").toString();
 	}
 }

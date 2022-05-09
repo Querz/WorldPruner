@@ -3,13 +3,11 @@ package net.querz.worldpruner.prune;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.querz.mca.Chunk;
 import net.querz.mca.MCAFile;
-import net.querz.mca.MCAFileHandle;
-import net.querz.mca.MCCFileHandler;
-import net.querz.mca.seekable.SeekableFile;
+import net.querz.nbt.LongTag;
+import net.querz.nbt.io.stream.TagSelector;
 import net.querz.worldpruner.selection.Selection;
 import net.querz.worldpruner.selection.Point;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.regex.Matcher;
@@ -19,10 +17,10 @@ public class Pruner {
 
 	public static final Pattern MCA_FILE_PATTERN = Pattern.compile("^r\\.(?<x>-?\\d+)\\.(?<z>-?\\d+)\\.mca$");
 
-	// TODO: implement a "defragment" function for MCAFile so we don't have to load the entire file
-//	private static final TagSelector inhabitedTimeSelector = new TagSelector("InhabitedTime", LongTag.TYPE);
+	private static final TagSelector inhabitedTimeSelector = new TagSelector("InhabitedTime", LongTag.TYPE);
 
-	private final File regionDir, poiDir, entitiesDir;
+	private final PruneData pruneData;
+	private final int radiusSquared;
 
 	private LongOpenHashSet allRegionFiles = new LongOpenHashSet();
 	private LongOpenHashSet allPoiFiles = new LongOpenHashSet();
@@ -30,32 +28,30 @@ public class Pruner {
 
 	private Selection selection;
 
-	public Pruner(File regionDir, File poiDir, File entitiesDir) {
-		this.regionDir = regionDir;
-		this.poiDir = poiDir;
-		this.entitiesDir = entitiesDir;
+	public Pruner(PruneData pruneData) {
+		this.pruneData = pruneData;
+		this.radiusSquared = pruneData.radius() * pruneData.radius();
 	}
 
 	private MCAFile loadMCAFile(File file) throws IOException {
 		MCAFile mcaFile = new MCAFile(file);
-//		mcaFile.load(inhabitedTimeSelector);
-		mcaFile.load();
+		mcaFile.load(inhabitedTimeSelector);
 		return mcaFile;
 	}
 
-	private boolean skipChunk(Chunk chunk, long inhabitedTime) {
+	private boolean skipChunk(Chunk chunk) {
 		if (chunk == null || chunk.isEmpty()) {
 			return true;
 		}
 		// TODO: handle pre-1.17 chunks with the "Level" tag
 		long chunkInhabitedTime = chunk.getData().getLong("InhabitedTime");
-		return chunkInhabitedTime > inhabitedTime;
+		return chunkInhabitedTime > pruneData.inhabitedTime();
 	}
 
 	private void loadAllFiles() {
-		allRegionFiles = loadFiles(regionDir);
-		allPoiFiles = loadFiles(poiDir);
-		allEntityFiles = loadFiles(entitiesDir);
+		allRegionFiles = loadFiles(pruneData.regionDir());
+		allPoiFiles = loadFiles(pruneData.poiDir());
+		allEntityFiles = loadFiles(pruneData.entitiesDir());
 	}
 
 	private LongOpenHashSet loadFiles(File dir) {
@@ -73,26 +69,100 @@ public class Pruner {
 		return regions;
 	}
 
+	private void deFragment(File file, LongOpenHashSet whitelist) throws IOException {
+
+		// if the file only contains the header, we delete it
+		if (file.length() <= 8192) {
+			file.delete();
+			return;
+		}
+
+		MCAFile mcaFile = new MCAFile(file);
+		File tempFile = File.createTempFile(file.getName(), null, null);
+
+		int globalOffset = 2; // chunk data starts at 8192 (after 2 sectors)
+		int skippedChunks = 0;
+		Point region = new Point(mcaFile.getX(), mcaFile.getZ()).regionToChunk();
+
+		try (RandomAccessFile temp = new RandomAccessFile(tempFile, "rw");
+		     RandomAccessFile source = new RandomAccessFile(file, "r")) {
+
+			for (int i = 0; i < 1024; i++) {
+				int cz = i >> 5;
+				int cx = i - cz * 32;
+				if (whitelist != null && !whitelist.contains(region.add(cx, cz).asLong())) {
+					skippedChunks++;
+					continue;
+				}
+
+				// read chunk data from source
+				source.seek(i * 4);
+
+				int offset = source.read() << 16;
+				offset |= (source.read() & 0xFF) << 8;
+				offset |= source.read() & 0xFF;
+
+				int sectors = source.read();
+				if (offset == 0 || sectors <= 0) {
+					skippedChunks++;
+					continue;
+				}
+
+				source.seek(4096L + i * 4);
+				int timestamp = source.readInt();
+
+				source.seek(4096L * offset);
+				int dataLength = sectors * 4096;
+				BufferedInputStream dis = new BufferedInputStream(new FileInputStream(source.getFD()), dataLength);
+				byte[] data = new byte[dataLength];
+				dis.read(data);
+
+				// white chunk data to temp
+				temp.seek(i * 4L);
+				temp.write(globalOffset >>> 16);
+				temp.write(globalOffset >> 8 & 0xFF);
+				temp.write(globalOffset & 0xFF);
+
+				temp.write(sectors);
+
+				temp.seek(4096 + i * 4L);
+				temp.writeInt(timestamp);
+
+				temp.seek(globalOffset * 4096L);
+				BufferedOutputStream dos = new BufferedOutputStream(new FileOutputStream(temp.getFD()), dataLength);
+				dos.write(data);
+				globalOffset += sectors;
+			}
+		}
+
+		// if we skipped all chunks, we just delete the entire mca file
+		if (skippedChunks == 1024) {
+			if (tempFile.exists()) {
+				tempFile.delete();
+			}
+			file.delete();
+		} else {
+			Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+		}
+	}
+
 	private File toFile(File parent, Point p) {
 		return new File(parent, String.format("r.%d.%d.mca", p.x(), p.z()));
 	}
 
-	public void prune(long inhabitedTime, int radius, Selection whitelist) {
-		// TODO: implement radius. we will store all remaining chunks in temporary files.
-		// when we find chunks outside of the current region, we check if there is already a temporary file and we copy
-		// all remaining chunks from the external region file into that temp file. at the end we copy all temp files
-		// into the source directory, and delete all empty region files.
-
+	// TODO: track progress
+	public void prune() {
 		// we start with the selection being the whitelist
-		this.selection = whitelist;
+		this.selection = pruneData.whitelist();
 
 		loadAllFiles();
 
+		// collect all chunks that need to be kept based on InhabitedTime
 		for (long f : allRegionFiles) {
 			Point region = new Point(f);
-			File regionFile = toFile(regionDir, region);
+			File regionFile = toFile(pruneData.regionDir(), region);
 
-			System.out.printf("pruning chunks in %s\n", regionFile);
+			System.out.printf("collecting chunks in %s\n", regionFile);
 
 			MCAFile mcaFile;
 			try {
@@ -102,51 +172,47 @@ public class Pruner {
 				continue;
 			}
 
-			int emptyChunks = 0;
 			for (Chunk chunk : mcaFile) {
-//				if (chunk != null) {
-//					System.out.println("checking chunk " + chunk.getX() + " " + chunk.getZ());
-//				}
-				if (!skipChunk(chunk, inhabitedTime) && !whitelist.isChunkSelected(chunk.getX(), chunk.getZ())) {
-					mcaFile.setChunkAt(chunk.getX(), chunk.getZ(), null);
-				}
-				if (chunk == null || chunk.isEmpty()) {
-					emptyChunks++;
+				// check InhabitedTime with radius
+				if (chunk != null && skipChunk(chunk)) {
+					applyRadius(new Point(chunk.getX(), chunk.getZ()));
 				}
 			}
+		}
 
-			// delete mca file entirely if it contains no chunks anymore
-			if (emptyChunks == 1024) {
-				if (!regionFile.delete()) {
-					System.out.printf("failed to delete mca file %s\n", regionFile);
-					continue;
-				}
-			}
+		// remove all chunks that need to be deleted
+		deFragmentDir(pruneData.regionDir(), allRegionFiles);
+		deFragmentDir(pruneData.poiDir(), allPoiFiles);
+		deFragmentDir(pruneData.entitiesDir(), allEntityFiles);
+	}
 
-			File tempFile;
-			try {
-				tempFile = File.createTempFile(regionFile.getName(), null, null);
-			} catch (IOException e) {
-				System.out.printf("failed to create temp file for mca file %s\n", regionFile);
-				continue;
-			}
+	private void deFragmentDir(File dir, LongOpenHashSet regions) {
+		for (long f : regions) {
+			Point region = new Point(f);
+			File regionFile = toFile(dir, region);
 
-			try (MCAFileHandle handle = new MCAFileHandle(
-				regionFile.getParentFile(),
-				new SeekableFile(tempFile, "rw"),
-				MCCFileHandler.DEFAULT_HANDLER
-			)) {
-				mcaFile.save(handle);
-			} catch (IOException ex) {
-				System.out.printf("failed to save mca file %s\n", regionFile);
-				continue;
-			}
+			System.out.printf("pruning chunks in %s\n", regionFile);
 
 			try {
-				Files.move(tempFile.toPath(), regionFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+				LongOpenHashSet selectedChunks = selection.getSelectedChunks(region);
+				deFragment(regionFile, selectedChunks);
 			} catch (IOException ex) {
-				System.out.printf("failed to move temp mca file %s to %s\n", tempFile, regionFile);
-				continue;
+				System.out.printf("failed to defragment mca file %s\n", regionFile);
+			}
+		}
+	}
+
+	private void applyRadius(Point chunk) {
+		Point min = chunk.sub(pruneData.radius());
+		Point max = chunk.add(pruneData.radius());
+		for (int x = min.x(); x <= max.x(); x++) {
+			for (int z = min.z(); z <= max.z(); z++) {
+				int h = x - chunk.x();
+				int v = z - chunk.z();
+				double distSquared = h * h + v * v;
+				if (distSquared <= radiusSquared) {
+					selection.addChunk(new Point(x, z));
+				}
 			}
 		}
 	}

@@ -2,6 +2,7 @@ package net.querz.worldpruner.prune;
 
 import net.querz.worldpruner.selection.Selection;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -58,13 +59,16 @@ public record PruneData(
 		return duration;
 	}
 
-	public static PruneData parseArgs(Map<String, String> args) {
+	public static PruneData parseArgs(Map<String, String> args) throws IOException {
 		long inhabitedTime = parseDuration(args.getOrDefault("--time", "0s")) * TICKS_PER_SECOND;
 		int radius = Integer.parseInt(args.getOrDefault("--radius", "0"));
 		File regionDir = new File(args.get("--region"));
 		File poiDir = new File(args.get("--poi"));
 		File entitiesDir = new File(args.get("--entities"));
-		// TODO: whitelist
-		return new PruneData(regionDir, poiDir, entitiesDir, inhabitedTime, radius, new Selection());
+		Selection whitelist = new Selection();
+		if (args.containsKey("--whitelist")) {
+			whitelist = Selection.parseCSV(new File(args.get("--whitelist")));
+		}
+		return new PruneData(regionDir, poiDir, entitiesDir, inhabitedTime, radius, whitelist);
 	}
 }
