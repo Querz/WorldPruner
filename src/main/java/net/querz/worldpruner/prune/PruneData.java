@@ -1,6 +1,6 @@
 package net.querz.worldpruner.prune;
 
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import net.querz.worldpruner.selection.Selection;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,7 +15,7 @@ public record PruneData(
 	File entitiesDir,
 	long inhabitedTime,
 	int radius,
-	LongOpenHashSet whitelist) {
+	Selection whitelist) {
 
 	private static final long TICKS_PER_SECOND = 20L;
 	private static final Map<Pattern, Long> DURATION_REGEXP = new HashMap<>();
@@ -65,6 +65,6 @@ public record PruneData(
 		File poiDir = new File(args.get("--poi"));
 		File entitiesDir = new File(args.get("--entities"));
 		// TODO: whitelist
-		return new PruneData(regionDir, poiDir, entitiesDir, inhabitedTime, radius, new LongOpenHashSet());
+		return new PruneData(regionDir, poiDir, entitiesDir, inhabitedTime, radius, new Selection());
 	}
 }

@@ -6,6 +6,8 @@ import net.querz.mca.MCAFile;
 import net.querz.mca.MCAFileHandle;
 import net.querz.mca.MCCFileHandler;
 import net.querz.mca.seekable.SeekableFile;
+import net.querz.worldpruner.selection.Selection;
+import net.querz.worldpruner.util.Point;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -26,6 +28,8 @@ public class Pruner {
 	private LongOpenHashSet allPoiFiles = new LongOpenHashSet();
 	private LongOpenHashSet allEntityFiles = new LongOpenHashSet();
 
+	private Selection selection;
+
 	public Pruner(File regionDir, File poiDir, File entitiesDir) {
 		this.regionDir = regionDir;
 		this.poiDir = poiDir;
@@ -43,6 +47,7 @@ public class Pruner {
 		if (chunk == null || chunk.isEmpty()) {
 			return true;
 		}
+		// TODO: handle pre-1.17 chunks with the "Level" tag
 		long chunkInhabitedTime = chunk.getData().getLong("InhabitedTime");
 		return chunkInhabitedTime > inhabitedTime;
 	}
@@ -60,7 +65,7 @@ public class Pruner {
 			if (m.find()) {
 				int x = Integer.parseInt(m.group("x"));
 				int z = Integer.parseInt(m.group("z"));
-				regions.add(toLong(x, z));
+				regions.add(new Point(x, z).asLong());
 				return true;
 			}
 			return false;
@@ -68,28 +73,23 @@ public class Pruner {
 		return regions;
 	}
 
-	private long toLong(int x, int z) {
-		return (long) x << 32 | z & 0xFFFFFFFFL;
-	}
-
-	private Point toPoint(long l) {
-		return new Point((int) (l >> 32), (int) l);
-	}
-
 	private File toFile(File parent, Point p) {
 		return new File(parent, String.format("r.%d.%d.mca", p.x(), p.z()));
 	}
 
-	public void prune(long inhabitedTime, int radius, LongOpenHashSet whitelist) {
+	public void prune(long inhabitedTime, int radius, Selection whitelist) {
 		// TODO: implement radius. we will store all remaining chunks in temporary files.
 		// when we find chunks outside of the current region, we check if there is already a temporary file and we copy
 		// all remaining chunks from the external region file into that temp file. at the end we copy all temp files
 		// into the source directory, and delete all empty region files.
 
+		// we start with the selection being the whitelist
+		this.selection = whitelist;
+
 		loadAllFiles();
 
 		for (long f : allRegionFiles) {
-			Point region = toPoint(f);
+			Point region = new Point(f);
 			File regionFile = toFile(regionDir, region);
 
 			System.out.printf("pruning chunks in %s\n", regionFile);
@@ -107,7 +107,7 @@ public class Pruner {
 //				if (chunk != null) {
 //					System.out.println("checking chunk " + chunk.getX() + " " + chunk.getZ());
 //				}
-				if (!skipChunk(chunk, inhabitedTime) && !whitelist.contains(toLong(chunk.getX(), chunk.getZ()))) {
+				if (!skipChunk(chunk, inhabitedTime) && !whitelist.isChunkSelected(chunk.getX(), chunk.getZ())) {
 					mcaFile.setChunkAt(chunk.getX(), chunk.getZ(), null);
 				}
 				if (chunk == null || chunk.isEmpty()) {
@@ -148,14 +148,6 @@ public class Pruner {
 				System.out.printf("failed to move temp mca file %s to %s\n", tempFile, regionFile);
 				continue;
 			}
-		}
-	}
-
-	private record Point(int x, int z) {
-
-		@Override
-		public String toString() {
-			return String.format("<%d, %d>", x, z);
 		}
 	}
 }
