@@ -7,7 +7,7 @@ public record Point(int x, int z) {
 	}
 
 	public Point(long l) {
-		this((int) (l >> 32), (int) l);
+		this((int) l, (int) (l >> 32));
 	}
 
 	public Point add(int x, int z) {
@@ -127,7 +127,7 @@ public record Point(int x, int z) {
 	}
 
 	public long asLong() {
-		return (long) x << 32 | z & 0xFFFFFFFFL;
+		return (long) z << 32 | x & 0xFFFFFFFFL;
 	}
 
 	// converts this absolute chunk coordinate into a relative chunk coordinate
