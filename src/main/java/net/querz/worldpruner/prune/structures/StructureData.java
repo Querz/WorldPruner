@@ -158,8 +158,8 @@ public record StructureData(StructureID structureID, List<BoundingBox> boundingB
 
 		public LongOpenHashSet getChunksInside() {
 			LongOpenHashSet chunks = new LongOpenHashSet();
-			for (int x = minX; x <= maxX; x += 16) {
-				for (int z = minZ; z <= maxZ; z += 16) {
+			for (int x = minX - 16; x <= maxX + 16; x += 16) {
+				for (int z = minZ - 16; z <= maxZ + 16; z += 16) {
 					chunks.add(new Point(x, z).blockToChunk().asLong()); //TODO check if this is correct
 				}
 			}

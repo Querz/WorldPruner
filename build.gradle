@@ -1,5 +1,6 @@
 plugins {
 	id 'java'
+	id 'com.github.johnrengelman.shadow' version '7.1.0'
 }
 
 group 'net.querz'
@@ -22,7 +23,10 @@ tasks.withType(JavaCompile) {
 
 dependencies {
 	implementation 'com.github.Querz:NBT:404d5d83bd'
+	shadow 'com.github.Querz:NBT:404d5d83bd'
 	implementation 'it.unimi.dsi:fastutil:8.5.8'
+	shadow 'it.unimi.dsi:fastutil:8.5.8'
+	
 	implementation 'com.google.code.findbugs:jsr305:3.0.2'
 	testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
 	testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
@@ -30,4 +34,16 @@ dependencies {
 
 test {
 	useJUnitPlatform()
+}
+
+jar {
+	manifest {
+		attributes 'Main-Class': 'net.querz.worldpruner.Main'
+	}
+	dependsOn shadowJar
+}
+
+shadowJar {
+	configurations = [project.configurations.shadow]
+	classifier 'shadow-dev'
 }
