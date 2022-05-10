@@ -7,6 +7,7 @@ import net.querz.nbt.CompoundTag;
 import net.querz.nbt.LongTag;
 import net.querz.nbt.io.stream.TagSelector;
 import net.querz.worldpruner.selection.Selection;
+import net.querz.worldpruner.prune.structures.StructureManager;
 import net.querz.worldpruner.selection.Point;
 import java.io.*;
 import java.nio.file.Files;
@@ -18,8 +19,8 @@ public class Pruner {
 
 	public static final Pattern MCA_FILE_PATTERN = Pattern.compile("^r\\.(?<x>-?\\d+)\\.(?<z>-?\\d+)\\.mca$");
 
-//	private static final TagSelector inhabitedTimeSelector = new TagSelector("Level", "InhabitedTime", LongTag.TYPE);
 	private static final TagSelector inhabitedTimeSelector = new TagSelector("InhabitedTime", LongTag.TYPE);
+	private static final TagSelector structuresSelector = new TagSelector("structures", CompoundTag.TYPE);
 
 
 	private final PruneData pruneData;
@@ -30,19 +31,21 @@ public class Pruner {
 	private LongOpenHashSet allEntityFiles = new LongOpenHashSet();
 
 	private Selection selection;
+	private StructureManager structureManager;
 
 	public Pruner(PruneData pruneData) {
 		this.pruneData = pruneData;
 		this.radiusSquared = pruneData.radius() * pruneData.radius();
+		this.structureManager = new StructureManager(this);
 	}
 
 	private MCAFile loadMCAFile(File file) throws IOException {
 		MCAFile mcaFile = new MCAFile(file);
-		mcaFile.load(inhabitedTimeSelector);
+		mcaFile.load(inhabitedTimeSelector, structuresSelector);
 		return mcaFile;
 	}
 
-	private boolean skipChunk(Chunk chunk) {
+	public boolean skipChunk(Chunk chunk) {
 		if (chunk == null || chunk.isEmpty()) {
 			return true;
 		}
@@ -93,7 +96,7 @@ public class Pruner {
 		Point region = new Point(mcaFile.getX(), mcaFile.getZ()).regionToChunk();
 
 		try (RandomAccessFile temp = new RandomAccessFile(tempFile, "rw");
-		     RandomAccessFile source = new RandomAccessFile(file, "r")) {
+			 RandomAccessFile source = new RandomAccessFile(file, "r")) {
 
 			for (int i = 0; i < 1024; i++) {
 				int cz = i >> 5;
@@ -187,14 +190,22 @@ public class Pruner {
 			}
 
 			for (Chunk chunk : mcaFile) {
-				// check InhabitedTime with radius
-				if (chunk != null && skipChunk(chunk)) {
-					applyRadius(new Point(chunk.getX(), chunk.getZ()));
+				if (chunk != null) {
+					structureManager.checkChunk(chunk);
+					// check InhabitedTime with radius
+					if (skipChunk(chunk)) {
+						Point point = new Point(chunk.getX(), chunk.getZ());
+						selection.addChunk(point);
+						applyRadius(point);
+//                    selection.merge(StructureData.selectionFromChunk(chunk));
+					}
 				}
 			}
 
 			progress.increment(1);
 		}
+
+		selection.addAll(structureManager.calculateChunksToKeep());
 
 		// remove all chunks that need to be deleted
 		deFragmentDir(pruneData.regionDir(), allRegionFiles, progress);

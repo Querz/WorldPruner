@@ -23,6 +23,7 @@ tasks.withType(JavaCompile) {
 dependencies {
 	implementation 'com.github.Querz:NBT:70e0a9f429'
 	implementation 'it.unimi.dsi:fastutil:8.5.8'
+	implementation 'com.google.code.findbugs:jsr305:3.0.2'
 	testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
 	testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
 }
