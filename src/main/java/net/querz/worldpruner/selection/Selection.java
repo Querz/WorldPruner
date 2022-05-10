@@ -94,6 +94,11 @@ public class Selection {
 		addChunk(chunk.chunkToRegion().asLong(), chunk.asLong());
 	}
 
+
+	public void addChunk(long chunkCoords) {
+		addChunk(new Point(chunkCoords).chunkToRegion().asLong(), chunkCoords);
+	}
+
 	// TODO: handle inverted
 	protected void addChunk(long region, long chunk) {
 		if (selection.containsKey(region)) {
@@ -153,6 +158,12 @@ public class Selection {
 					addChunk(entry.getLongKey(), chunk);
 				}
 			}
+		}
+	}
+
+	public void addAll(LongOpenHashSet entries) {
+		for (long entry : entries) {
+			addChunk(entry);
 		}
 	}
 
