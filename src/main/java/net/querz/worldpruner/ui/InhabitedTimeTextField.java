@@ -22,7 +22,7 @@ public class InhabitedTimeTextField extends JTextField {
 
 	private void validateDuration() {
 		try {
-			duration = PruneData.parseDuration(getText());
+			duration = PruneData.parseDuration(getText()) * 20;
 			setBackground(Color.WHITE);
 			setToolTipText(duration + " ticks");
 		} catch (Exception ex) {

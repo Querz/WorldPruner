@@ -70,7 +70,7 @@ public class FileTextField extends JPanel {
 		choose.setVerticalAlignment(JButton.CENTER);
 
 		SpringUtilities.makeCompactGrid(this, 1, 2, 0, 0, 0, 0);
-		layout.putConstraint(SpringLayout.VERTICAL_CENTER, choose, 1, SpringLayout.VERTICAL_CENTER, field);
+		layout.putConstraint(SpringLayout.VERTICAL_CENTER, choose, 0, SpringLayout.VERTICAL_CENTER, field);
 	}
 
 	private void setAppleFileDialogForDirectories(boolean dirsOnly, boolean value) {

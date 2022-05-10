@@ -14,6 +14,12 @@ public final class Window extends JFrame {
 	public static Window INSTANCE;
 
 	public static void create() {
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+			throw new RuntimeException(e);
+		}
+
 		INSTANCE = new Window();
 		INSTANCE.setTitle("World Pruner");
 		INSTANCE.setSize(500, 250);
@@ -86,6 +92,7 @@ public final class Window extends JFrame {
 		prune.addActionListener(e -> new Thread(() -> {
 			// TODO: handle world directories being null properly
 			PruneData pruneData = new PruneData(PruneData.WorldDirectory.parseWorldDirectory(new File(worldField.getText())), inhabitedTimeField.getDuration(), radiusField.getNumber(), new Selection());
+			System.out.println(pruneData);
 			new Pruner(pruneData).prune(progressBar);
 		}).start());
 

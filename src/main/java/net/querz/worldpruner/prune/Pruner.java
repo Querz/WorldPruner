@@ -18,7 +18,7 @@ public class Pruner {
 
 	public static final Pattern MCA_FILE_PATTERN = Pattern.compile("^r\\.(?<x>-?\\d+)\\.(?<z>-?\\d+)\\.mca$");
 
-//	private static final TagSelector inhabitedTimeSelector = new TagSelector("Level", "InhabitedTime", LongTag.TYPE);
+	private static final TagSelector inhabitedTimeSelectorLegacy = new TagSelector("Level", "InhabitedTime", LongTag.TYPE);
 	private static final TagSelector inhabitedTimeSelector = new TagSelector("InhabitedTime", LongTag.TYPE);
 
 

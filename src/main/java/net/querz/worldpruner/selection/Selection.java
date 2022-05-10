@@ -168,4 +168,9 @@ public class Selection {
 		}
 		return sb.append("]").toString();
 	}
+
+	@Override
+	public String toString() {
+		return "<regions: " + selection.size() + ", inverted: " + inverted + ">";
+	}
 }
