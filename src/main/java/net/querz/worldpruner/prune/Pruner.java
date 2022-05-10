@@ -3,9 +3,12 @@ package net.querz.worldpruner.prune;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.querz.mca.Chunk;
 import net.querz.mca.MCAFile;
+import net.querz.mca.MCAFileHandle;
+import net.querz.mca.MCCFileHandler;
+import net.querz.mca.seekable.SeekableFile;
 import net.querz.nbt.CompoundTag;
-import net.querz.nbt.LongTag;
-import net.querz.nbt.io.stream.TagSelector;
+import net.querz.nbt.Tag;
+import net.querz.worldpruner.selection.PrunerSelectionStreamTagVisitor;
 import net.querz.worldpruner.selection.Selection;
 import net.querz.worldpruner.prune.structures.StructureManager;
 import net.querz.worldpruner.selection.Point;
@@ -19,11 +22,6 @@ public class Pruner {
 
 	public static final Pattern MCA_FILE_PATTERN = Pattern.compile("^r\\.(?<x>-?\\d+)\\.(?<z>-?\\d+)\\.mca$");
 
-	private static final TagSelector inhabitedTimeSelectorLegacy = new TagSelector("Level", "InhabitedTime", LongTag.TYPE);
-	private static final TagSelector inhabitedTimeSelector = new TagSelector("InhabitedTime", LongTag.TYPE);
-	private static final TagSelector structuresSelector = new TagSelector("structures", CompoundTag.TYPE);
-
-
 	private final PruneData pruneData;
 	private final int radiusSquared;
 
@@ -32,7 +30,7 @@ public class Pruner {
 	private LongOpenHashSet allEntityFiles = new LongOpenHashSet();
 
 	private Selection selection;
-	private StructureManager structureManager;
+	private final StructureManager structureManager;
 
 	public Pruner(PruneData pruneData) {
 		this.pruneData = pruneData;
@@ -42,7 +40,12 @@ public class Pruner {
 
 	private MCAFile loadMCAFile(File file) throws IOException {
 		MCAFile mcaFile = new MCAFile(file);
-		mcaFile.load(inhabitedTimeSelector, structuresSelector);
+		mcaFile.load(new MCAFileHandle(
+			file.getParentFile(),
+			new SeekableFile(file, "r"),
+			MCCFileHandler.DEFAULT_HANDLER,
+			PrunerSelectionStreamTagVisitor::new
+		));
 		return mcaFile;
 	}
 
@@ -50,11 +53,12 @@ public class Pruner {
 		if (chunk == null || chunk.isEmpty()) {
 			return true;
 		}
-		// TODO: handle pre-1.17 chunks with the "Level" tag
-//		CompoundTag level = chunk.getData().getCompound("Level");
-//		long chunkInhabitedTime = level.getLong("InhabitedTime");
-		long chunkInhabitedTime = chunk.getData().getLong("InhabitedTime");
-		return chunkInhabitedTime > pruneData.inhabitedTime();
+		if (chunk.getData().contains("Level", Tag.COMPOUND)) {
+			CompoundTag level = chunk.getData().getCompound("Level");
+			return level.getLongOrDefault("InhabitedTime", Long.MAX_VALUE) > pruneData.inhabitedTime();
+		} else {
+			return chunk.getData().getLongOrDefault("InhabitedTime", Long.MAX_VALUE) > pruneData.inhabitedTime();
+		}
 	}
 
 	private void loadAllFiles() {
@@ -198,7 +202,6 @@ public class Pruner {
 						Point point = new Point(chunk.getX(), chunk.getZ());
 						selection.addChunk(point);
 						applyRadius(point);
-//                    selection.merge(StructureData.selectionFromChunk(chunk));
 					}
 				}
 			}

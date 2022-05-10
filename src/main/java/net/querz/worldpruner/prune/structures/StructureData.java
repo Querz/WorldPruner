@@ -71,10 +71,20 @@ public record StructureData(StructureID structureID, List<BoundingBox> boundingB
 		if (data == null) {
 			return structureList;
 		}
-		if (!data.contains("structures", Tag.COMPOUND)) {
+
+		CompoundTag structures;
+		if (data.contains("Level", Tag.COMPOUND)) {
+			CompoundTag level = data.getCompound("Level");
+			if (!level.contains("Structures", Tag.COMPOUND)) {
+				return structureList;
+			}
+			structures = level.getCompound("Structures");
+		} else if (!data.contains("structures", Tag.COMPOUND)) {
 			return structureList;
+		} else {
+			structures = data.getCompound("structures");
 		}
-		CompoundTag structures = data.getCompound("structures");
+
 		if (!structures.contains("starts", Tag.COMPOUND)) {
 			//TODO handle references
 			return structureList;
