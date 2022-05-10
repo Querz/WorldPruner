@@ -94,6 +94,7 @@ public class Selection {
 		addChunk(chunk.chunkToRegion().asLong(), chunk.asLong());
 	}
 
+	// TODO: handle inverted
 	protected void addChunk(long region, long chunk) {
 		if (selection.containsKey(region)) {
 			LongOpenHashSet chunks = selection.get(region);
@@ -142,6 +143,7 @@ public class Selection {
 		return result;
 	}
 
+	// TODO: handle inverted
 	public void merge(Selection other) {
 		for (Long2ObjectMap.Entry<LongOpenHashSet> entry : other.selection.long2ObjectEntrySet()) {
 			if (entry.getValue() == null) {

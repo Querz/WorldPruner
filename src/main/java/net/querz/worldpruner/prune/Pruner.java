@@ -18,7 +18,9 @@ public class Pruner {
 
 	public static final Pattern MCA_FILE_PATTERN = Pattern.compile("^r\\.(?<x>-?\\d+)\\.(?<z>-?\\d+)\\.mca$");
 
-	private static final TagSelector inhabitedTimeSelector = new TagSelector("Level", "InhabitedTime", LongTag.TYPE);
+//	private static final TagSelector inhabitedTimeSelector = new TagSelector("Level", "InhabitedTime", LongTag.TYPE);
+	private static final TagSelector inhabitedTimeSelector = new TagSelector("InhabitedTime", LongTag.TYPE);
+
 
 	private final PruneData pruneData;
 	private final int radiusSquared;
@@ -45,8 +47,9 @@ public class Pruner {
 			return true;
 		}
 		// TODO: handle pre-1.17 chunks with the "Level" tag
-		CompoundTag level = chunk.getData().getCompound("Level");
-		long chunkInhabitedTime = level.getLong("InhabitedTime");
+//		CompoundTag level = chunk.getData().getCompound("Level");
+//		long chunkInhabitedTime = level.getLong("InhabitedTime");
+		long chunkInhabitedTime = chunk.getData().getLong("InhabitedTime");
 		return chunkInhabitedTime > pruneData.inhabitedTime();
 	}
 
