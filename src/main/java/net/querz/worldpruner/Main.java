@@ -1,9 +1,12 @@
 package net.querz.worldpruner;
 
 import net.querz.worldpruner.cli.ArgsParser;
+import net.querz.worldpruner.cli.CLIProgress;
 import net.querz.worldpruner.cli.Timer;
 import net.querz.worldpruner.prune.PruneData;
 import net.querz.worldpruner.prune.Pruner;
+import net.querz.worldpruner.ui.Window;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -20,16 +23,22 @@ public class Main {
 
 // cmd --time <duration> --radius <int> --whitelist [csv]
 	public static void main(String[] args) throws IOException {
-		Map<String, String> parsedArgs = ArgsParser.parse(args);
 
-		PruneData data = PruneData.parseArgs(parsedArgs);
-		System.out.println(data);
-		Pruner pruner = new Pruner(data);
+		if (args.length == 0) {
+			Window.create();
+			return;
+		} else {
+			Map<String, String> parsedArgs = ArgsParser.parse(args);
 
-		Timer t = new Timer();
+			PruneData data = PruneData.parseArgs(parsedArgs);
+			System.out.println(data);
+			Pruner pruner = new Pruner(data);
 
-		pruner.prune();
+			Timer t = new Timer();
 
-		System.out.println("pruning took " + t);
+			pruner.prune(new CLIProgress());
+
+			System.out.println("pruning took " + t);
+		}
 	}
 }

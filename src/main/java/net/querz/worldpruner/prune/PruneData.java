@@ -18,6 +18,13 @@ public record PruneData(
 	int radius,
 	Selection whitelist) {
 
+	public PruneData(WorldDirectory dir, long inhabitedTime, int radius, Selection whitelist) {
+		this(dir.region, dir.poi, dir.entities, inhabitedTime, radius, whitelist);
+	}
+
+	public static final int MIN_RADIUS = 0;
+	public static final int MAX_RADIUS = 16;
+
 	private static final long TICKS_PER_SECOND = 20L;
 	private static final Map<Pattern, Long> DURATION_REGEXP = new HashMap<>();
 
@@ -30,7 +37,7 @@ public record PruneData(
 		DURATION_REGEXP.put(Pattern.compile("(?<data>\\d+)\\W*(?:seconds?|secs?|s)"), 1L);
 	}
 
-	private static long parseDuration(String d) {
+	public static long parseDuration(String d) {
 		boolean result = false;
 		int duration = 0;
 		List<String> elements = new ArrayList<>();
@@ -59,9 +66,17 @@ public record PruneData(
 		return duration;
 	}
 
+	public static int parseRadius(String r) {
+		int radius = Integer.parseInt(r);
+		if (radius < MIN_RADIUS || radius > MAX_RADIUS) {
+			throw new IllegalArgumentException("radius out of bounds: " + radius);
+		}
+		return radius;
+	}
+
 	public static PruneData parseArgs(Map<String, String> args) throws IOException {
 		long inhabitedTime = parseDuration(args.getOrDefault("--time", "0s")) * TICKS_PER_SECOND;
-		int radius = Integer.parseInt(args.getOrDefault("--radius", "0"));
+		int radius = parseRadius(args.getOrDefault("--radius", "0"));
 		File regionDir = new File(args.get("--region"));
 		File poiDir = new File(args.get("--poi"));
 		File entitiesDir = new File(args.get("--entities"));
@@ -70,5 +85,17 @@ public record PruneData(
 			whitelist = Selection.parseCSV(new File(args.get("--whitelist")));
 		}
 		return new PruneData(regionDir, poiDir, entitiesDir, inhabitedTime, radius, whitelist);
+	}
+
+	public record WorldDirectory(File region, File poi, File entities) {
+		public static WorldDirectory parseWorldDirectory(File dir) {
+			File region = new File(dir, "region");
+			File poi = new File(dir, "poi");
+			File entities = new File(dir, "entities");
+			if (!region.exists()) {
+				return null;
+			}
+			return new WorldDirectory(region, poi.exists() ? poi : null, entities.exists() ? entities : null);
+		}
 	}
 }

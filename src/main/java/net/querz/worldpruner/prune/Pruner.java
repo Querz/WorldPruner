@@ -3,6 +3,7 @@ package net.querz.worldpruner.prune;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.querz.mca.Chunk;
 import net.querz.mca.MCAFile;
+import net.querz.nbt.CompoundTag;
 import net.querz.nbt.LongTag;
 import net.querz.nbt.io.stream.TagSelector;
 import net.querz.worldpruner.selection.Selection;
@@ -17,7 +18,7 @@ public class Pruner {
 
 	public static final Pattern MCA_FILE_PATTERN = Pattern.compile("^r\\.(?<x>-?\\d+)\\.(?<z>-?\\d+)\\.mca$");
 
-	private static final TagSelector inhabitedTimeSelector = new TagSelector("InhabitedTime", LongTag.TYPE);
+	private static final TagSelector inhabitedTimeSelector = new TagSelector("Level", "InhabitedTime", LongTag.TYPE);
 
 	private final PruneData pruneData;
 	private final int radiusSquared;
@@ -44,7 +45,8 @@ public class Pruner {
 			return true;
 		}
 		// TODO: handle pre-1.17 chunks with the "Level" tag
-		long chunkInhabitedTime = chunk.getData().getLong("InhabitedTime");
+		CompoundTag level = chunk.getData().getCompound("Level");
+		long chunkInhabitedTime = level.getLong("InhabitedTime");
 		return chunkInhabitedTime > pruneData.inhabitedTime();
 	}
 
@@ -55,6 +57,9 @@ public class Pruner {
 	}
 
 	private LongOpenHashSet loadFiles(File dir) {
+		if (dir == null) {
+			return new LongOpenHashSet(0);
+		}
 		LongOpenHashSet regions = new LongOpenHashSet();
 		dir.list((d, n) -> {
 			Matcher m = MCA_FILE_PATTERN.matcher(n);
@@ -150,12 +155,17 @@ public class Pruner {
 		return new File(parent, String.format("r.%d.%d.mca", p.x(), p.z()));
 	}
 
-	// TODO: track progress
-	public void prune() {
+	public void prune(Progress progress) {
 		// we start with the selection being the whitelist
 		this.selection = pruneData.whitelist();
 
+		progress.setIndeterminate(true);
+		progress.setMessage("Indexing files");
 		loadAllFiles();
+
+		progress.setIndeterminate(false);
+		progress.setMinimum(0);
+		progress.setMaximum(allRegionFiles.size());
 
 		// collect all chunks that need to be kept based on InhabitedTime
 		for (long f : allRegionFiles) {
@@ -169,6 +179,7 @@ public class Pruner {
 				mcaFile = loadMCAFile(regionFile);
 			} catch (IOException ex) {
 				System.out.printf("failed to load mca file %s\n", regionFile);
+				progress.increment(1);
 				continue;
 			}
 
@@ -178,15 +189,29 @@ public class Pruner {
 					applyRadius(new Point(chunk.getX(), chunk.getZ()));
 				}
 			}
+
+			progress.increment(1);
 		}
 
 		// remove all chunks that need to be deleted
-		deFragmentDir(pruneData.regionDir(), allRegionFiles);
-		deFragmentDir(pruneData.poiDir(), allPoiFiles);
-		deFragmentDir(pruneData.entitiesDir(), allEntityFiles);
+		deFragmentDir(pruneData.regionDir(), allRegionFiles, progress);
+		deFragmentDir(pruneData.poiDir(), allPoiFiles, progress);
+		deFragmentDir(pruneData.entitiesDir(), allEntityFiles, progress);
+
+		progress.done();
 	}
 
-	private void deFragmentDir(File dir, LongOpenHashSet regions) {
+	private void deFragmentDir(File dir, LongOpenHashSet regions, Progress progress) {
+		if (dir == null) {
+			return;
+		}
+
+		progress.setMinimum(0);
+		progress.setMaximum(regions.size());
+		progress.setValue(0);
+		progress.setIndeterminate(false);
+		progress.setMessage("DeFragmenting files in " + dir.getName());
+
 		for (long f : regions) {
 			Point region = new Point(f);
 			File regionFile = toFile(dir, region);
@@ -199,6 +224,8 @@ public class Pruner {
 			} catch (IOException ex) {
 				System.out.printf("failed to defragment mca file %s\n", regionFile);
 			}
+
+			progress.increment(1);
 		}
 	}
 
