@@ -35,37 +35,12 @@ public class FileTextField extends JPanel {
 			if (chooser.showOpenDialog(Window.INSTANCE) == JFileChooser.APPROVE_OPTION) {
 				field.setText(chooser.getSelectedFile() + "");
 			}
-
-//			try {
-//				// for MacOS, we need to set this system property so the file dialog allows selection of folders
-//				setAppleFileDialogForDirectories(dirsOnly, true);
-//
-//				// either open the directory from the text field if it's valid or open the default directory
-//				FileDialog chooser = new FileDialog(Window.INSTANCE, "Open World", FileDialog.LOAD);
-//				if (field.getText() != null && !field.getText().isEmpty()) {
-//					File fieldFile = new File(field.getText());
-//					if (fieldFile.exists() && fieldFile.isDirectory()) {
-//						chooser.setDirectory(fieldFile + "");
-//					}
-//				}
-//				chooser.setMultipleMode(false);
-//				if (fileType != null) {
-//					chooser.setFilenameFilter((f, n) -> !new File(f, n).isDirectory() && n.endsWith("." + fileType));
-//				} else {
-//					chooser.setFilenameFilter((f, n) -> new File(f, n).isDirectory());
-//				}
-//				chooser.setVisible(true);
-//				if (chooser.getFile() != null) {
-//					File file = new File(chooser.getDirectory(), chooser.getFile());
-//					field.setText(file + "");
-//				}
-//			} finally {
-//				setAppleFileDialogForDirectories(dirsOnly, false);
-//			}
 		});
 
 		add(field);
 		add(choose);
+
+		choose.setMargin(new Insets(1, 5, 1, 5));
 
 		choose.setVerticalAlignment(JButton.CENTER);
 

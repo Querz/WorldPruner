@@ -5,8 +5,6 @@ import net.querz.worldpruner.prune.Pruner;
 import net.querz.worldpruner.selection.Selection;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.io.File;
 
 public final class Window extends JFrame {
@@ -24,20 +22,6 @@ public final class Window extends JFrame {
 		INSTANCE.setTitle("World Pruner");
 		INSTANCE.setSize(500, 250);
 		INSTANCE.setMinimumSize(new Dimension(500, 250));
-
-		INSTANCE.addComponentListener(new ComponentAdapter(){
-			public void componentResized(ComponentEvent e){
-				Dimension d = INSTANCE.getSize();
-				Dimension minD = INSTANCE.getMinimumSize();
-				if (d.width < minD.width) {
-					d.width = minD.width;
-				}
-				if (d.height < minD.height) {
-					d.height = minD.height;
-				}
-				INSTANCE.setSize(d);
-			}
-		});
 
 		JPanel panel = new JPanel();
 		panel.setLayout(new BorderLayout());
