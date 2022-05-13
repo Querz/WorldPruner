@@ -31,6 +31,7 @@ public record StructureData(StructureID structureID, List<BoundingBox> boundingB
 			return references;
 		}
 		CompoundTag referenceTag = structures.getCompound("References");
+		System.out.println()
 
 		for (Map.Entry<String, Tag> entry : referenceTag) {
 			if (entry.getValue() instanceof LongArrayTag longTag) {

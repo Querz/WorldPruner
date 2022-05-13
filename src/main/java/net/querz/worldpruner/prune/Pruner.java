@@ -1,6 +1,7 @@
 package net.querz.worldpruner.prune;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
 import net.querz.mca.Chunk;
 import net.querz.mca.MCAFile;
 import net.querz.mca.MCAFileHandle;
@@ -85,28 +86,24 @@ public class Pruner {
 		return regions;
 	}
 
-	private void deFragment(File file, LongOpenHashSet whitelist) throws IOException {
+	private void deFragment(File file, ShortOpenHashSet whitelist) throws IOException {
 
-		// if the file only contains the header, we delete it
-		if (file.length() <= 8192) {
+		// if the file only contains the header or the whitelist is empty we delete it
+		if (file.length() <= 8192 || whitelist != null && whitelist.isEmpty()) {
 			file.delete();
 			return;
 		}
 
-		MCAFile mcaFile = new MCAFile(file);
 		File tempFile = File.createTempFile(file.getName(), null, null);
 
 		int globalOffset = 2; // chunk data starts at 8192 (after 2 sectors)
 		int skippedChunks = 0;
-		Point region = new Point(mcaFile.getX(), mcaFile.getZ()).regionToChunk();
 
 		try (RandomAccessFile temp = new RandomAccessFile(tempFile, "rw");
 			 RandomAccessFile source = new RandomAccessFile(file, "r")) {
 
-			for (int i = 0; i < 1024; i++) {
-				int cz = i >> 5;
-				int cx = i - cz * 32;
-				if (whitelist != null && !whitelist.contains(region.add(cx, cz).asLong())) {
+			for (short i = 0; i < 1024; i++) {
+				if (whitelist != null && !whitelist.contains(i)) {
 					skippedChunks++;
 					continue;
 				}
@@ -237,7 +234,7 @@ public class Pruner {
 			System.out.printf("pruning chunks in %s\n", regionFile);
 
 			try {
-				LongOpenHashSet selectedChunks = selection.getSelectedChunks(region);
+				ShortOpenHashSet selectedChunks = selection.getSelectedChunks(region);
 				deFragment(regionFile, selectedChunks);
 			} catch (IOException ex) {
 				System.out.printf("failed to defragment mca file %s\n", regionFile);
