@@ -41,12 +41,14 @@ public class Pruner {
 
 	private MCAFile loadMCAFile(File file) throws IOException {
 		MCAFile mcaFile = new MCAFile(file);
-		mcaFile.load(new MCAFileHandle(
+		try (MCAFileHandle handle = new MCAFileHandle(
 			file.getParentFile(),
 			new SeekableFile(file, "r"),
 			MCCFileHandler.DEFAULT_HANDLER,
-			PrunerSelectionStreamTagVisitor::new
-		));
+			PrunerSelectionStreamTagVisitor::new)
+		) {
+			mcaFile.load(handle);
+		}
 		return mcaFile;
 	}
 
@@ -238,6 +240,7 @@ public class Pruner {
 				deFragment(regionFile, selectedChunks);
 			} catch (IOException ex) {
 				System.out.printf("failed to defragment mca file %s\n", regionFile);
+				ex.printStackTrace();
 			}
 
 			progress.increment(1);
