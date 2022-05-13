@@ -3,7 +3,6 @@ package net.querz.worldpruner.prune.structures;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.querz.mca.Chunk;
 import net.querz.worldpruner.prune.Pruner;
-
 import java.util.*;
 
 public class StructureManager {

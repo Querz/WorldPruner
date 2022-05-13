@@ -5,7 +5,6 @@ import net.querz.mca.Chunk;
 import net.querz.nbt.*;
 import net.querz.worldpruner.selection.Point;
 import net.querz.worldpruner.selection.Selection;
-
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,21 +16,37 @@ public record StructureData(StructureID structureID, List<BoundingBox> boundingB
 		return new StructureData(structureID, new ArrayList<>());
 	}
 
+	public static CompoundTag getReferences(CompoundTag root) {
+		if (root.contains("structures", Tag.COMPOUND)) {
+			return root.getCompound("structures").getCompoundOrDefault("References", null);
+		}
+		if (root.contains("Level", Tag.COMPOUND) && root.getCompound("Level").contains("Structures", Tag.COMPOUND)) {
+			return root.getCompound("Level").getCompound("Structures").getCompoundOrDefault("References", null);
+		}
+		return null;
+	}
+
+	public static CompoundTag getStarts(CompoundTag root) {
+		if (root.contains("structures", Tag.COMPOUND)) {
+			return root.getCompound("structures").getCompoundOrDefault("starts", null);
+		}
+		if (root.contains("Level", Tag.COMPOUND) && root.getCompound("Level").contains("Structures", Tag.COMPOUND)) {
+			return root.getCompound("Level").getCompound("Structures").getCompoundOrDefault("Starts", null);
+		}
+		return null;
+	}
+
 	public static List<StructureID> getStructureReferences(Chunk chunk) {
 		List<StructureID> references = new ArrayList<>();
 		CompoundTag data = chunk.getData();
 		if (data == null) {
 			return references;
 		}
-		if (!data.contains("structures", Tag.COMPOUND)) {
+
+		CompoundTag referenceTag = getReferences(data);
+		if (referenceTag == null) {
 			return references;
 		}
-		CompoundTag structures = data.getCompound("structures");
-		if (!structures.contains("References", Tag.COMPOUND)) {
-			return references;
-		}
-		CompoundTag referenceTag = structures.getCompound("References");
-		System.out.println()
 
 		for (Map.Entry<String, Tag> entry : referenceTag) {
 			if (entry.getValue() instanceof LongArrayTag longTag) {
@@ -73,24 +88,10 @@ public record StructureData(StructureID structureID, List<BoundingBox> boundingB
 			return structureList;
 		}
 
-		CompoundTag structures;
-		if (data.contains("Level", Tag.COMPOUND)) {
-			CompoundTag level = data.getCompound("Level");
-			if (!level.contains("Structures", Tag.COMPOUND)) {
-				return structureList;
-			}
-			structures = level.getCompound("Structures");
-		} else if (!data.contains("structures", Tag.COMPOUND)) {
-			return structureList;
-		} else {
-			structures = data.getCompound("structures");
-		}
-
-		if (!structures.contains("starts", Tag.COMPOUND)) {
-			//TODO handle references
+		CompoundTag starts = getStarts(data);
+		if (starts == null) {
 			return structureList;
 		}
-		CompoundTag starts = structures.getCompound("starts");
 
 		for (Map.Entry<String, Tag> tag : starts) {
 			if (!(tag.getValue() instanceof CompoundTag structureData)) {
