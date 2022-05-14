@@ -9,9 +9,13 @@ import javax.swing.text.PlainDocument;
 public class NumberTextField extends JTextField {
 
 	private final int min, max;
+	private int length;
 
 	public NumberTextField(int min, int max, String def, int cols) {
 		super(def, cols);
+		if (min > max) {
+			throw new IllegalArgumentException("minimum is larger than maximum");
+		}
 		this.min = min;
 		this.max = max;
 	}
@@ -31,8 +35,15 @@ public class NumberTextField extends JTextField {
 		public void insertString(int offs, String str, AttributeSet a) throws BadLocationException {
 			String before = getText(0, getLength());
 			super.insertString(offs, str, a);
+			String content = getText(0, getLength());
+			if (length == 0) {
+				length = Integer.toString(max).length();
+			}
+			if (content.length() > length) {
+				setText(before);
+				return;
+			}
 			try {
-				String content = getText(0, getLength());
 				int i = Integer.parseInt(content);
 				if (i < min || i > max) {
 					setText(before);

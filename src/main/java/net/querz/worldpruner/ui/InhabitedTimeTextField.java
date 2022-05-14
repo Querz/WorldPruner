@@ -6,7 +6,6 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.Document;
 import javax.swing.text.PlainDocument;
-import java.awt.*;
 
 public class InhabitedTimeTextField extends JTextField {
 
@@ -21,11 +20,11 @@ public class InhabitedTimeTextField extends JTextField {
 	private void validateDuration() {
 		try {
 			duration = PruneData.parseDuration(getText()) * 20;
-			setBackground(Color.WHITE);
+			setBackground(Colors.VALID_BACKGROUND);
 			setToolTipText(duration + " ticks");
 		} catch (Exception ex) {
 			duration = -1;
-			setBackground(Const.INVALID_BACKGROUND);
+			setBackground(Colors.INVALID_BACKGROUND);
 			setToolTipText("invalid");
 		}
 		if (updateListener != null) {

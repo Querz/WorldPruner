@@ -3,14 +3,20 @@ package net.querz.worldpruner.ui;
 import net.querz.worldpruner.prune.PruneData;
 import net.querz.worldpruner.prune.Pruner;
 import net.querz.worldpruner.selection.Selection;
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 public final class Window extends JFrame {
 
 	public static Window INSTANCE;
+
+	private Window() {}
 
 	public static void create() {
 		try {
@@ -23,6 +29,9 @@ public final class Window extends JFrame {
 		INSTANCE.setTitle("World Pruner");
 		INSTANCE.setSize(500, 250);
 		INSTANCE.setMinimumSize(new Dimension(500, 250));
+
+		// icons
+		INSTANCE.setIconImages(INSTANCE.loadIcons());
 
 		JPanel panel = new JPanel();
 		panel.setLayout(new BorderLayout());
@@ -114,7 +123,6 @@ public final class Window extends JFrame {
 				selection = new Selection();
 			}
 
-
 			new Thread(() -> {
 				PruneData pruneData = new PruneData(
 					worldDir,
@@ -131,5 +139,17 @@ public final class Window extends JFrame {
 		INSTANCE.setLocationRelativeTo(null);
 		INSTANCE.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		INSTANCE.setVisible(true);
+	}
+
+	private List<Image> loadIcons() {
+		List<Image> images = new ArrayList<>();
+		for (int res = 16; res <= 128; res *= 2) {
+			try {
+				images.add(ImageIO.read(Objects.requireNonNull(getClass().getResource(String.format("/img/icon/%dx%d.png", res, res)))));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		return images;
 	}
 }

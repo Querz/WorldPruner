@@ -104,10 +104,10 @@ public class FileTextField extends JPanel {
 	private void setValid(boolean valid) {
 		this.valid = valid;
 		if (valid) {
-			field.setBackground(Color.WHITE);
+			field.setBackground(Colors.VALID_BACKGROUND);
 			field.setToolTipText(null);
 		} else {
-			field.setBackground(Const.INVALID_BACKGROUND);
+			field.setBackground(Colors.INVALID_BACKGROUND);
 			field.setToolTipText(invalidTooltip);
 		}
 	}

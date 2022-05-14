@@ -23,7 +23,7 @@ public record PruneData(
 	}
 
 	public static final int MIN_RADIUS = 0;
-	public static final int MAX_RADIUS = 16;
+	public static final int MAX_RADIUS = 128;
 
 	private static final long TICKS_PER_SECOND = 20L;
 	private static final Map<Pattern, Long> DURATION_REGEXP = new HashMap<>();
@@ -89,6 +89,9 @@ public record PruneData(
 
 	public record WorldDirectory(File region, File poi, File entities) {
 		public static WorldDirectory parseWorldDirectory(File dir) {
+			if (!dir.isDirectory()) {
+				return null;
+			}
 			File region = new File(dir, "region");
 			File poi = new File(dir, "poi");
 			File entities = new File(dir, "entities");
