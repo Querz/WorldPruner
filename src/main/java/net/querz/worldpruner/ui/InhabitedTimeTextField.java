@@ -10,8 +10,6 @@ import java.awt.*;
 
 public class InhabitedTimeTextField extends JTextField {
 
-	public static final Color INVALID_BACKGROUND = new Color(255, 179, 179);
-
 	private long duration;
 	private Runnable updateListener;
 
@@ -27,7 +25,7 @@ public class InhabitedTimeTextField extends JTextField {
 			setToolTipText(duration + " ticks");
 		} catch (Exception ex) {
 			duration = -1;
-			setBackground(INVALID_BACKGROUND);
+			setBackground(Const.INVALID_BACKGROUND);
 			setToolTipText("invalid");
 		}
 		if (updateListener != null) {
