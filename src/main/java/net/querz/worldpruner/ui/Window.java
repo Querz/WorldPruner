@@ -130,7 +130,7 @@ public final class Window extends JFrame {
 					radiusField.getNumber(),
 					selection
 				);
-				new Pruner(pruneData).prune(progressBar);
+				new Pruner(pruneData).prune(progressBar, new DialogErrorHandler(INSTANCE));
 			}).start();
 		});
 

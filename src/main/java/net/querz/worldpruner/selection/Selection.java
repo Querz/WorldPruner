@@ -129,6 +129,22 @@ public class Selection {
 		}
 	}
 
+	public void addRegion(long region) {
+		if (inverted) {
+			selection.remove(region);
+		} else {
+			selection.put(region, null);
+		}
+	}
+
+	public boolean isRegionSelected(long region) {
+		if (inverted) {
+			return !selection.containsKey(region);
+		} else {
+			return selection.containsKey(region) && selection.get(region) == null;
+		}
+	}
+
 	public ShortOpenHashSet getSelectedChunks(Point region) {
 		if (inverted) {
 			if (selection.containsKey(region.asLong())) {

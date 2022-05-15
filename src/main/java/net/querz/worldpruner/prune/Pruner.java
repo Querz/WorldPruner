@@ -9,10 +9,13 @@ import net.querz.mca.MCCFileHandler;
 import net.querz.mca.seekable.SeekableFile;
 import net.querz.nbt.CompoundTag;
 import net.querz.nbt.Tag;
+import net.querz.worldpruner.cli.Timer;
 import net.querz.worldpruner.selection.PrunerSelectionStreamTagVisitor;
 import net.querz.worldpruner.selection.Selection;
 import net.querz.worldpruner.prune.structures.StructureManager;
 import net.querz.worldpruner.selection.Point;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -20,6 +23,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Pruner {
+
+	private static final Logger LOGGER = LogManager.getLogger(Pruner.class);
 
 	public static final Pattern MCA_FILE_PATTERN = Pattern.compile("^r\\.(?<x>-?\\d+)\\.(?<z>-?\\d+)\\.mca$");
 
@@ -37,6 +42,7 @@ public class Pruner {
 		this.pruneData = pruneData;
 		this.radiusSquared = pruneData.radius() * pruneData.radius();
 		this.structureManager = new StructureManager(this);
+		LOGGER.info("initialized Pruner with data {}", pruneData);
 	}
 
 	private MCAFile loadMCAFile(File file) throws IOException {
@@ -88,12 +94,18 @@ public class Pruner {
 		return regions;
 	}
 
-	private void deFragment(File file, ShortOpenHashSet whitelist) throws IOException {
+	private int deFragment(File file, ShortOpenHashSet whitelist, ErrorHandler errorHandler) throws IOException {
 
 		// if the file only contains the header or the whitelist is empty we delete it
 		if (file.length() <= 8192 || whitelist != null && whitelist.isEmpty()) {
-			file.delete();
-			return;
+			if (file.delete()) {
+				LOGGER.info("Deleted empty file {}", file);
+			} else {
+				if (errorHandler.handle(LOGGER, "Failed to delete empty file {}", file)) {
+					return -1;
+				}
+			}
+			return 0;
 		}
 
 		File tempFile = File.createTempFile(file.getName(), null, null);
@@ -153,19 +165,28 @@ public class Pruner {
 		// if we skipped all chunks, we just delete the entire mca file
 		if (skippedChunks == 1024) {
 			if (tempFile.exists()) {
-				tempFile.delete();
+				if (!tempFile.delete()) {
+					LOGGER.warn("Failed to delete temp file {}", tempFile);
+				}
 			}
-			file.delete();
+			if (file.delete()) {
+				LOGGER.info("Deleted {} because it is empty", file);
+			} else {
+				if (errorHandler.handle(LOGGER, "Failed to delete {} when all chunks were pruned", file)) {
+					return -1;
+				}
+			}
 		} else {
 			Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		}
+		return 1024 - skippedChunks;
 	}
 
 	private File toFile(File parent, Point p) {
 		return new File(parent, String.format("r.%d.%d.mca", p.x(), p.z()));
 	}
 
-	public void prune(Progress progress) {
+	public void prune(Progress progress, ErrorHandler errorHandler) {
 		// we start with the selection being the whitelist
 		this.selection = pruneData.whitelist();
 
@@ -182,14 +203,18 @@ public class Pruner {
 			Point region = new Point(f);
 			File regionFile = toFile(pruneData.regionDir(), region);
 
-			System.out.printf("collecting chunks in %s\n", regionFile);
+			LOGGER.info("Collecting chunks in {}", regionFile);
 
 			MCAFile mcaFile;
 			try {
 				mcaFile = loadMCAFile(regionFile);
 			} catch (IOException ex) {
-				System.out.printf("failed to load mca file %s\n", regionFile);
+				if (errorHandler.handle(LOGGER, "Failed to load mca file {}", regionFile, ex)) {
+					progress.done();
+					return;
+				}
 				progress.increment(1);
+				selection.addRegion(f);
 				continue;
 			}
 
@@ -211,16 +236,22 @@ public class Pruner {
 		selection.addAll(structureManager.calculateChunksToKeep());
 
 		// remove all chunks that need to be deleted
-		deFragmentDir(pruneData.regionDir(), allRegionFiles, progress);
-		deFragmentDir(pruneData.poiDir(), allPoiFiles, progress);
-		deFragmentDir(pruneData.entitiesDir(), allEntityFiles, progress);
+		if (deFragmentDir(pruneData.regionDir(), allRegionFiles, progress, errorHandler)) {
+			return;
+		}
+		if (deFragmentDir(pruneData.poiDir(), allPoiFiles, progress, errorHandler)) {
+			return;
+		}
+		if (deFragmentDir(pruneData.entitiesDir(), allEntityFiles, progress, errorHandler)) {
+			return;
+		}
 
 		progress.done();
 	}
 
-	private void deFragmentDir(File dir, LongOpenHashSet regions, Progress progress) {
+	private boolean deFragmentDir(File dir, LongOpenHashSet regions, Progress progress, ErrorHandler errorHandler) {
 		if (dir == null) {
-			return;
+			return false;
 		}
 
 		progress.setMinimum(0);
@@ -230,21 +261,34 @@ public class Pruner {
 		progress.setMessage("DeFragmenting files in " + dir.getName());
 
 		for (long f : regions) {
+			if (selection.isRegionSelected(f)) {
+				progress.increment(1);
+				continue;
+			}
+
 			Point region = new Point(f);
 			File regionFile = toFile(dir, region);
 
-			System.out.printf("pruning chunks in %s\n", regionFile);
-
 			try {
 				ShortOpenHashSet selectedChunks = selection.getSelectedChunks(region);
-				deFragment(regionFile, selectedChunks);
-			} catch (IOException ex) {
-				System.out.printf("failed to defragment mca file %s\n", regionFile);
-				ex.printStackTrace();
-			}
 
+				Timer t = new Timer();
+				int pruned = deFragment(regionFile, selectedChunks, errorHandler);
+				if (pruned == -1) {
+					progress.done();
+					return true;
+				}
+				LOGGER.info("Took {} to prune {} chunks in {}", t, pruned, regionFile);
+
+			} catch (IOException ex) {
+				if (errorHandler.handle(LOGGER, "Failed to defragment mca file {}", regionFile, ex)) {
+					progress.done();
+					return true;
+				}
+			}
 			progress.increment(1);
 		}
+		return false;
 	}
 
 	private void applyRadius(Point chunk) {
