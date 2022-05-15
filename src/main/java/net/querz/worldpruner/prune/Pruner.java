@@ -200,10 +200,9 @@ public class Pruner {
 
 		// collect all chunks that need to be kept based on InhabitedTime
 		for (long f : allRegionFiles) {
+			Timer t = new Timer();
 			Point region = new Point(f);
 			File regionFile = toFile(pruneData.regionDir(), region);
-
-			LOGGER.info("Collecting chunks in {}", regionFile);
 
 			MCAFile mcaFile;
 			try {
@@ -229,6 +228,8 @@ public class Pruner {
 					}
 				}
 			}
+
+			LOGGER.info("Took {} to collect chunks in {}", t, regionFile);
 
 			progress.increment(1);
 		}
