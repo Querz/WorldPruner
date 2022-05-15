@@ -15,6 +15,11 @@ public final class ArgsParser {
 				result.put(key, "");
 				break;
 			}
+			if (args[i + 1].startsWith("--")) {
+				result.put(key, null);
+				i--;
+				continue;
+			}
 			if (!key.startsWith("--")) {
 				throw new IllegalArgumentException("invalid argument " + key);
 			}

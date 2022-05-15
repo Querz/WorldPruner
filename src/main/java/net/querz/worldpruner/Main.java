@@ -1,6 +1,7 @@
 package net.querz.worldpruner;
 
 import net.querz.worldpruner.cli.ArgsParser;
+import net.querz.worldpruner.cli.CLIErrorHandler;
 import net.querz.worldpruner.cli.CLIProgress;
 import net.querz.worldpruner.cli.Timer;
 import net.querz.worldpruner.prune.PruneData;
@@ -40,8 +41,7 @@ public class Main {
 
 			Timer t = new Timer();
 
-			// TODO: ErrorHandler
-			pruner.prune(new CLIProgress(), null);
+			pruner.prune(new CLIProgress(), new CLIErrorHandler(parsedArgs.containsKey("--continue-on-error")));
 
 			LOGGER.info("pruning took " + t);
 		}
