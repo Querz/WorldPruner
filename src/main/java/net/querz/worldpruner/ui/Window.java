@@ -8,9 +8,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
 
 public final class Window extends JFrame {
 
@@ -50,8 +49,12 @@ public final class Window extends JFrame {
 			if (!f.isDirectory()) {
 				return false;
 			}
-			File[] contents = f.listFiles((d, n) -> d.isDirectory() && (n.equals("region") || n.equals("poi") || n.equals("entities")));
-			return contents != null && contents.length > 0;
+			String[] contents = f.list((d, n) -> d.isDirectory() && (n.equals("region") || n.equals("poi") || n.equals("entities")));
+			if (contents == null || contents.length == 0 || !Arrays.asList(contents).contains("region")) {
+				return false;
+			}
+			worldField.setValidTooltip(formatValidWorldTooltip(contents));
+			return true;
 		});
 		worldLabel.setLabelFor(worldField);
 		options.add(worldLabel);
@@ -151,5 +154,14 @@ public final class Window extends JFrame {
 			}
 		}
 		return images;
+	}
+
+	private static String formatValidWorldTooltip(String[] subDirs) {
+		return switch (subDirs.length) {
+			case 1 -> "Found world sub-directory " + subDirs[0];
+			case 2 -> "Found world sub-directories " + subDirs[0] + " and " + subDirs[1];
+			case 3 -> "Found world sub-directories " + subDirs[0] + ", " + subDirs[1] + " and " + subDirs[2];
+			default -> "Found world sub-directories " + String.join(", ", subDirs);
+		};
 	}
 }

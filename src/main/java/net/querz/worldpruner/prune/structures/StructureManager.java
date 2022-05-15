@@ -3,9 +3,13 @@ package net.querz.worldpruner.prune.structures;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.querz.mca.Chunk;
 import net.querz.worldpruner.prune.Pruner;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import java.util.*;
 
 public class StructureManager {
+
+    private static final Logger LOGGER = LogManager.getLogger(StructureManager.class);
 
     private Pruner pruner;
     private Map<StructureID, StructureData> cachedStructures;
@@ -41,7 +45,7 @@ public class StructureManager {
                 chunksToKeep.addAll(boundingBox.getChunksInside());
             }
         }
-        System.out.println("keeping " + chunksToKeep.size() + " chunks"); //TODO remove
+        LOGGER.info("Keeping {} chunks containing structures", chunksToKeep.size());
         return chunksToKeep;
     }
 

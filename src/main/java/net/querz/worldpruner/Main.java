@@ -31,7 +31,6 @@ public class Main {
 
 		if (args.length == 0) {
 			Window.create();
-			return;
 		} else {
 			Map<String, String> parsedArgs = ArgsParser.parse(args);
 
@@ -43,7 +42,7 @@ public class Main {
 
 			pruner.prune(new CLIProgress(), new CLIErrorHandler(parsedArgs.containsKey("--continue-on-error")));
 
-			LOGGER.info("pruning took " + t);
+			LOGGER.info("Pruning took " + t);
 		}
 	}
 }

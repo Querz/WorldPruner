@@ -42,7 +42,7 @@ public class Pruner {
 		this.pruneData = pruneData;
 		this.radiusSquared = pruneData.radius() * pruneData.radius();
 		this.structureManager = new StructureManager(this);
-		LOGGER.info("initialized Pruner with data {}", pruneData);
+		LOGGER.info("Initialized Pruner with data {}", pruneData);
 	}
 
 	private MCAFile loadMCAFile(File file) throws IOException {
@@ -208,7 +208,7 @@ public class Pruner {
 			try {
 				mcaFile = loadMCAFile(regionFile);
 			} catch (IOException ex) {
-				if (errorHandler.handle(LOGGER, "Failed to load mca file {}", regionFile, ex)) {
+				if (errorHandler.handle(LOGGER, ex, "Failed to load mca file {}", regionFile)) {
 					progress.done();
 					return;
 				}
@@ -282,7 +282,7 @@ public class Pruner {
 				LOGGER.info("Took {} to prune {} chunks in {}", t, pruned, regionFile);
 
 			} catch (IOException ex) {
-				if (errorHandler.handle(LOGGER, "Failed to defragment mca file {}", regionFile, ex)) {
+				if (errorHandler.handle(LOGGER, ex, "Failed to defragment mca file {}", regionFile)) {
 					progress.done();
 					return true;
 				}

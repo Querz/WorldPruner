@@ -13,20 +13,20 @@ public class CLIErrorHandler implements ErrorHandler {
 
 	@Override
 	public boolean handle(Logger logger, String msg, Object... params) {
-		if (params.length > 0 && params[params.length - 1] instanceof Throwable) {
-			Object[] copy = new Object[params.length - 1];
-			System.arraycopy(params, 0, copy, 0, copy.length);
-			if (skip) {
-				logger.warn(msg, copy, params[params.length - 1]);
-			} else {
-				logger.error(msg, copy, params[params.length - 1]);
-			}
+		if (skip) {
+			logger.warn(msg, params);
 		} else {
-			if (skip) {
-				logger.warn(msg, params);
-			} else {
-				logger.error(msg, params);
-			}
+			logger.error(msg, params);
+		}
+		return !skip;
+	}
+
+	@Override
+	public boolean handle(Logger logger, Throwable t, String msg, Object... params) {
+		if (skip) {
+			logger.warn(msg, params, t);
+		} else {
+			logger.error(msg, params, t);
 		}
 		return !skip;
 	}

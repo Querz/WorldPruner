@@ -17,6 +17,7 @@ public class FileTextField extends JPanel {
 	private Runnable updateListener;
 	private BiFunction<String, File, Boolean> fileValidator;
 	private String invalidTooltip;
+	private String validTooltip;
 
 	public FileTextField(String fileType, String description) {
 		SpringLayout layout = new SpringLayout();
@@ -84,6 +85,10 @@ public class FileTextField extends JPanel {
 		invalidTooltip = tooltip;
 	}
 
+	public void setValidTooltip(String tooltip) {
+		validTooltip = tooltip;
+	}
+
 	public String getText() {
 		return field.getText();
 	}
@@ -105,7 +110,7 @@ public class FileTextField extends JPanel {
 		this.valid = valid;
 		if (valid) {
 			field.setBackground(Colors.VALID_BACKGROUND);
-			field.setToolTipText(null);
+			field.setToolTipText(validTooltip);
 		} else {
 			field.setBackground(Colors.INVALID_BACKGROUND);
 			field.setToolTipText(invalidTooltip);
