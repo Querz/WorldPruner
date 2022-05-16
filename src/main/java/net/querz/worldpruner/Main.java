@@ -1,7 +1,6 @@
 package net.querz.worldpruner;
 
 import net.querz.worldpruner.cli.AdvancedCLIProgress;
-import net.querz.worldpruner.cli.ArgsParser;
 import net.querz.worldpruner.cli.CLIErrorHandler;
 import net.querz.worldpruner.cli.Timer;
 import net.querz.worldpruner.prune.PruneData;
@@ -11,7 +10,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Map;
 
 public class Main {
 
@@ -24,7 +22,7 @@ public class Main {
 // Prune all except whitelist	Run Pruning
 
 
-// cmd --time <duration> --radius <int> --whitelist [csv]
+// cmd --time <duration> --radius <int> --white-list [csv]
 
 	private static final Logger LOGGER = LogManager.getLogger(Main.class);
 
@@ -33,11 +31,13 @@ public class Main {
 		if (args.length == 0) {
 			Window.create();
 		} else {
-			Map<String, String> parsedArgs = ArgsParser.parse(args);
+			PruneData data = PruneData.parseArgs(args);
+			if (data == null) {
+				// Exiting because either the args are wrong or "--help" was entered
+				return;
+			}
 
-			PruneData data = PruneData.parseArgs(parsedArgs);
-
-			Pruner pruner = new Pruner(data, new CLIErrorHandler(parsedArgs.containsKey("--continue-on-error")));
+			Pruner pruner = new Pruner(data, new CLIErrorHandler(data.continueOnError()));
 
 			Timer t = new Timer();
 

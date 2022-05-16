@@ -1,6 +1,11 @@
 package net.querz.worldpruner.prune;
 
 import net.querz.worldpruner.selection.Selection;
+import org.apache.commons.cli.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,15 +16,22 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public record PruneData(
-	File regionDir,
-	File poiDir,
-	File entitiesDir,
-	long inhabitedTime,
-	int radius,
-	Selection whitelist) {
+		File regionDir,
+		File poiDir,
+		File entitiesDir,
+		long inhabitedTime,
+		int radius,
+		Selection whitelist,
+		boolean continueOnError) {
+
+	private static final Logger LOGGER = LogManager.getLogger(PruneData.class);
+
+	public PruneData(WorldDirectory dir, long inhabitedTime, int radius, Selection whitelist, boolean continueOnError) {
+		this(dir.region, dir.poi, dir.entities, inhabitedTime, radius, whitelist, continueOnError);
+	}
 
 	public PruneData(WorldDirectory dir, long inhabitedTime, int radius, Selection whitelist) {
-		this(dir.region, dir.poi, dir.entities, inhabitedTime, radius, whitelist);
+		this(dir, inhabitedTime, radius, whitelist, false);
 	}
 
 	public static final int MIN_RADIUS = 0;
@@ -74,17 +86,80 @@ public record PruneData(
 		return radius;
 	}
 
-	public static PruneData parseArgs(Map<String, String> args) throws IOException {
-		long inhabitedTime = parseDuration(args.getOrDefault("--time", "0s")) * TICKS_PER_SECOND;
-		int radius = parseRadius(args.getOrDefault("--radius", "0"));
-		File regionDir = new File(args.get("--region"));
-		File poiDir = new File(args.get("--poi"));
-		File entitiesDir = new File(args.get("--entities"));
-		Selection whitelist = new Selection();
-		if (args.containsKey("--whitelist")) {
-			whitelist = Selection.parseCSV(new File(args.get("--whitelist")));
+	@Nullable
+	public static PruneData parseArgs(String... args) {
+		Options options = new Options();
+		options.addOption(Option.builder("h")
+				.longOpt("help")
+				.desc("Prints all available commandline options")
+				.build());
+		options.addOption(Option.builder("t")
+				.longOpt("time")
+				.hasArg()
+				.desc("The minimum time a chunk should have to be kept")
+				.build());
+		options.addOption(Option.builder("R")
+				.longOpt("radius")
+				.hasArg()
+				.desc("The radius of additional chunks preserved around matching chunks")
+				.build());
+		options.addOption(Option.builder("w")
+				.longOpt("world")
+				.hasArg()
+				.desc("The path to the world folder")
+				.build());
+		options.addOption(Option.builder("W")
+				.longOpt("white-list")
+				.hasArg()
+				.desc("The path to whitelist CSV file")
+				.build());
+
+		options.addOption(Option.builder("c")
+				.longOpt("continue-on-error")
+				.desc("If execution should continue if an error occurs")
+				.build());
+
+		CommandLineParser parser = new DefaultParser();
+		try {
+			CommandLine line = parser.parse(options, args);
+
+			if (line.hasOption("help")) {
+				printHelp(options);
+				return null;
+			}
+
+			long inhabitedTime = parseDuration(line.getOptionValue("time", "0s")) * TICKS_PER_SECOND;
+			int radius = parseRadius(line.getOptionValue("radius", "0"));
+			Selection whitelist = new Selection();
+			if (line.hasOption("white-list")) {
+				whitelist = Selection.parseCSV(new File(line.getOptionValue("white-list")));
+			}
+			if (!line.hasOption("world")) {
+				LOGGER.error("Missing required argument \"world\"");
+				printHelp(options);
+				return null;
+			}
+			File worldDir = new File(line.getOptionValue("world"));
+			WorldDirectory world = WorldDirectory.parseWorldDirectory(worldDir);
+			if (world == null) {
+				LOGGER.error("Could not find world at \"{}\"", worldDir.getAbsolutePath());
+				return null;
+			}
+			return new PruneData(world, inhabitedTime, radius, whitelist, line.hasOption("continue-on-error"));
+		} catch (ParseException e) {
+			LOGGER.error(e.getMessage());
+			printHelp(options);
+			return null;
+		} catch (IOException e) {
+			// This should only happen if the CSV fails parsing
+			LOGGER.error(e.getMessage());
+			return null;
 		}
-		return new PruneData(regionDir, poiDir, entitiesDir, inhabitedTime, radius, whitelist);
+	}
+
+	private static void printHelp(Options options) {
+		HelpFormatter formatter = new HelpFormatter();
+		formatter.printHelp("java -jar WorldPruner.jar <args>", options);
 	}
 
 	public record WorldDirectory(File region, File poi, File entities) {
