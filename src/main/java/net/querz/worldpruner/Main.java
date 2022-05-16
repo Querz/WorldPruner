@@ -8,7 +8,6 @@ import net.querz.worldpruner.prune.Pruner;
 import net.querz.worldpruner.ui.Window;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import java.io.IOException;
 
 public class Main {
 
