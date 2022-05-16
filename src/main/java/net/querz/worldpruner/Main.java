@@ -9,24 +9,11 @@ import net.querz.worldpruner.ui.Window;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.IOException;
-
 public class Main {
-
-// (To spare chunks from pruning)
-// InhabitedTime Required        3 Minutes
-// Additional radius             2 Chunks
-// Whitelisted Chunks/Regions	 A Table Of Entries
-// Run Pruning
-//
-// Prune all except whitelist	Run Pruning
-
-
-// cmd --time <duration> --radius <int> --white-list [csv]
 
 	private static final Logger LOGGER = LogManager.getLogger(Main.class);
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) {
 
 		if (args.length == 0) {
 			Window.create();

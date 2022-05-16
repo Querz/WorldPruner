@@ -63,7 +63,7 @@ public record PruneData(
 			}
 		}
 		if (!result) {
-			throw new IllegalArgumentException("could not parse anything from duration string");
+			throw new IllegalArgumentException("Could not parse anything from duration string");
 		}
 
 		String remains = d;
@@ -72,7 +72,7 @@ public record PruneData(
 		}
 		remains = remains.trim();
 		if (remains.length() > 0) {
-			throw new IllegalArgumentException("invalid element in duration string: " + remains);
+			throw new IllegalArgumentException("Invalid element in duration string: " + remains);
 		}
 
 		return duration;
@@ -81,7 +81,7 @@ public record PruneData(
 	public static int parseRadius(String r) {
 		int radius = Integer.parseInt(r);
 		if (radius < MIN_RADIUS || radius > MAX_RADIUS) {
-			throw new IllegalArgumentException("radius out of bounds: " + radius);
+			throw new IllegalArgumentException("Radius out of bounds: " + radius);
 		}
 		return radius;
 	}
@@ -146,7 +146,7 @@ public record PruneData(
 				return null;
 			}
 			return new PruneData(world, inhabitedTime, radius, whitelist, line.hasOption("continue-on-error"));
-		} catch (ParseException e) {
+		} catch (ParseException | IllegalArgumentException e) {
 			LOGGER.error(e.getMessage());
 			printHelp(options);
 			return null;

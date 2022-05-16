@@ -3,7 +3,8 @@ package net.querz.worldpruner.ui;
 import net.querz.worldpruner.prune.PruneData;
 import net.querz.worldpruner.prune.Pruner;
 import net.querz.worldpruner.selection.Selection;
-
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -13,6 +14,8 @@ import java.util.*;
 import java.util.List;
 
 public final class Window extends JFrame {
+
+	private static final Logger LOGGER = LogManager.getLogger(Window.class);
 
 	public static Window INSTANCE;
 
@@ -118,9 +121,11 @@ public final class Window extends JFrame {
 			String csvString = whitelistField.getText();
 			Selection selection;
 			if (csvString != null && !csvString.isEmpty()) {
+				File csv = new File(csvString);
 				try {
-					selection = Selection.parseCSV(new File(csvString));
+					selection = Selection.parseCSV(csv);
 				} catch (IOException ex) {
+					LOGGER.error("Failed to parse whitelist from {}", csv, ex);
 					JOptionPane.showMessageDialog(INSTANCE, ex.getMessage(), "Invalid Whitelist", JOptionPane.ERROR_MESSAGE);
 					return;
 				}
