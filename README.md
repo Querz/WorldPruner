@@ -18,7 +18,7 @@ There are two ways to use this application: *GUI* mode and *CLI* mode.
 
 The GUI mode offers an easy way to tweak the different parameters of the application.
 
-To use the GUI, simply open the `WorldPruner.jar` file with java.
+To use the GUI, open the `WorldPruner.jar` file with java.
 
 You simply need to open your world folder with the file chooser, provide a minimum time, a radius and an
 optional [whitelist](#whitelisting-chunks) containing all chunks that should be kept in any case.
