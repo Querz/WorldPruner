@@ -18,7 +18,7 @@ There are two ways to use this application: *GUI* mode and *CLI* mode.
 
 The GUI mode offers an easy way to tweak the different parameters of the application.
 
-To use the GUI, open the `WorldPruner.jar` file with java.
+To use the GUI, open the `WorldPruner.jar` file with Java.
 
 You simply need to open your world folder with the file chooser, provide a minimum time, a radius and an
 optional [whitelist](#whitelisting-chunks) containing all chunks that should be kept in any case.
@@ -33,13 +33,13 @@ allows to operate the application from the command line.
 **Command line arguments:**
 
 | Argument(s)                | Default Value |Description|
-|----------------------------|--------------|---|
-| `--world` `-w`             | *Required*   |The path to the world folder|
-| `--time` `-t`              | `0 seconds`  |The minimum time a chunk should have to be kept|
-| `--radius` `-r`            | `0`          |The radius of additional chunks preserved around matching chunks|
-| `--white-list` `-W`        |     |The path to whitelist CSV file|
-| `--continue-on-error` `-c` |      |If execution should continue if an error occurs|
-| `--help` `-h`              |      |Prints all available commandline options|
+|----------------------------|---------------|------------|
+| `--world` `-w`             | *Required*    | The path to the world folder |
+| `--time` `-t`              | `0 seconds`   | The minimum time a chunk should have to be kept |
+| `--radius` `-r`            | `0`           | The radius of additional chunks preserved around matching chunks |
+| `--white-list` `-W`        |               | The path to whitelist CSV file |
+| `--continue-on-error` `-c` |               | If execution should continue if an error occurs |
+| `--help` `-h`              |               | Prints all available commandline options |
 
 **Examples:**
 
@@ -65,10 +65,7 @@ java -jar WorldPruner.jar --help
 
 ## Whitelisting Chunks
 
-You can export a whiltelist from [MCASelector](https://github.com/Querz/mcaselector).
-More information how to create a whitelist [here](https://github.com/Querz/mcaselector/wiki/Selections#save-and-load-selections).
+You can create and export a whiltelist from [MCA Selector](https://github.com/Querz/mcaselector).
+More information on how to create a whitelist can be found [here](https://github.com/Querz/mcaselector/wiki/Selections#save-and-load-selections).
 
 If you want to create your own whitelist read [this](https://github.com/Querz/mcaselector/wiki/Selections#selection-file-format).
-
-**Note**: Inverted selections are not yet supported!
-
