@@ -1,14 +1,15 @@
 package net.querz.worldpruner;
 
+import net.querz.worldpruner.cli.AdvancedCLIProgress;
 import net.querz.worldpruner.cli.ArgsParser;
 import net.querz.worldpruner.cli.CLIErrorHandler;
-import net.querz.worldpruner.cli.CLIProgress;
 import net.querz.worldpruner.cli.Timer;
 import net.querz.worldpruner.prune.PruneData;
 import net.querz.worldpruner.prune.Pruner;
 import net.querz.worldpruner.ui.Window;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -36,11 +37,11 @@ public class Main {
 
 			PruneData data = PruneData.parseArgs(parsedArgs);
 
-			Pruner pruner = new Pruner(data);
+			Pruner pruner = new Pruner(data, new CLIErrorHandler(parsedArgs.containsKey("--continue-on-error")));
 
 			Timer t = new Timer();
 
-			pruner.prune(new CLIProgress(), new CLIErrorHandler(parsedArgs.containsKey("--continue-on-error")));
+			pruner.prune(new AdvancedCLIProgress());
 
 			LOGGER.info("Pruning took " + t);
 		}

@@ -145,4 +145,11 @@ public record Point(int x, int z) {
 		Point n = normalizeChunkInRegion();
 		return (short) (n.z << 5 | n.x & 0x1F);
 	}
+
+	@Override
+	public String toString() {
+		return "{x=" + x +
+				", z=" + z +
+				'}';
+	}
 }

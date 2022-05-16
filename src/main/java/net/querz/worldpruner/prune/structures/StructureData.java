@@ -5,6 +5,7 @@ import net.querz.mca.Chunk;
 import net.querz.nbt.*;
 import net.querz.worldpruner.selection.Point;
 import net.querz.worldpruner.selection.Selection;
+
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,7 +99,6 @@ public record StructureData(StructureID structureID, List<BoundingBox> boundingB
 				continue;
 			}
 			List<BoundingBox> boundingBoxes = new ArrayList<>();
-			//TODO check if this is the whole bounding box of the structure and if it is needed if stuff is not completely generated
 			BoundingBox bb = BoundingBox.fromTag(structureData, "BB");
 			if (bb != null) {
 				boundingBoxes.add(bb);
@@ -144,7 +144,6 @@ public record StructureData(StructureID structureID, List<BoundingBox> boundingB
 		}
 
 		public boolean intersects(BoundingBox other) {
-			//TODO decide if touching is intersecting
 			return minX <= other.maxX && maxX >= other.minX && minY <= other.maxY && maxY >= other.minY && minZ <= other.maxZ && maxZ >= other.minZ;
 		}
 
@@ -162,7 +161,7 @@ public record StructureData(StructureID structureID, List<BoundingBox> boundingB
 			LongOpenHashSet chunks = new LongOpenHashSet();
 			for (int x = minX - 16; x <= maxX + 16; x += 16) {
 				for (int z = minZ - 16; z <= maxZ + 16; z += 16) {
-					chunks.add(new Point(x, z).blockToChunk().asLong()); //TODO check if this is correct
+					chunks.add(new Point(x, z).blockToChunk().asLong());
 				}
 			}
 			return chunks;

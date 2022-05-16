@@ -3,6 +3,7 @@ package net.querz.worldpruner.ui;
 import net.querz.worldpruner.prune.PruneData;
 import net.querz.worldpruner.prune.Pruner;
 import net.querz.worldpruner.selection.Selection;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -15,7 +16,8 @@ public final class Window extends JFrame {
 
 	public static Window INSTANCE;
 
-	private Window() {}
+	private Window() {
+	}
 
 	public static void create() {
 		try {
@@ -128,12 +130,12 @@ public final class Window extends JFrame {
 
 			new Thread(() -> {
 				PruneData pruneData = new PruneData(
-					worldDir,
-					inhabitedTimeField.getDuration(),
-					radiusField.getNumber(),
-					selection
+						worldDir,
+						inhabitedTimeField.getDuration(),
+						radiusField.getNumber(),
+						selection
 				);
-				new Pruner(pruneData).prune(progressBar, new DialogErrorHandler(INSTANCE));
+				new Pruner(pruneData, new DialogErrorHandler(INSTANCE)).prune(progressBar);
 			}).start();
 		});
 

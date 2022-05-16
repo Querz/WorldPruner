@@ -16,6 +16,7 @@ import net.querz.worldpruner.prune.structures.StructureManager;
 import net.querz.worldpruner.selection.Point;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -29,6 +30,7 @@ public class Pruner {
 	public static final Pattern MCA_FILE_PATTERN = Pattern.compile("^r\\.(?<x>-?\\d+)\\.(?<z>-?\\d+)\\.mca$");
 
 	private final PruneData pruneData;
+	private final ErrorHandler errorHandler;
 	private final int radiusSquared;
 
 	private LongOpenHashSet allRegionFiles = new LongOpenHashSet();
@@ -38,20 +40,21 @@ public class Pruner {
 	private Selection selection;
 	private final StructureManager structureManager;
 
-	public Pruner(PruneData pruneData) {
+	public Pruner(PruneData pruneData, ErrorHandler errorHandler) {
 		this.pruneData = pruneData;
+		this.errorHandler = errorHandler;
 		this.radiusSquared = pruneData.radius() * pruneData.radius();
-		this.structureManager = new StructureManager(this);
+		this.structureManager = new StructureManager(this, errorHandler);
 		LOGGER.info("Initialized Pruner with data {}", pruneData);
 	}
 
 	private MCAFile loadMCAFile(File file) throws IOException {
 		MCAFile mcaFile = new MCAFile(file);
 		try (MCAFileHandle handle = new MCAFileHandle(
-			file.getParentFile(),
-			new SeekableFile(file, "r"),
-			MCCFileHandler.DEFAULT_HANDLER,
-			PrunerSelectionStreamTagVisitor::new)
+				file.getParentFile(),
+				new SeekableFile(file, "r"),
+				MCCFileHandler.DEFAULT_HANDLER,
+				PrunerSelectionStreamTagVisitor::new)
 		) {
 			mcaFile.load(handle);
 		}
@@ -94,7 +97,7 @@ public class Pruner {
 		return regions;
 	}
 
-	private int deFragment(File file, ShortOpenHashSet whitelist, ErrorHandler errorHandler) throws IOException {
+	private int deFragment(File file, ShortOpenHashSet whitelist) throws IOException {
 
 		// if the file only contains the header or the whitelist is empty we delete it
 		if (file.length() <= 8192 || whitelist != null && whitelist.isEmpty()) {
@@ -186,7 +189,7 @@ public class Pruner {
 		return new File(parent, String.format("r.%d.%d.mca", p.x(), p.z()));
 	}
 
-	public void prune(Progress progress, ErrorHandler errorHandler) {
+	public void prune(Progress progress) {
 		// we start with the selection being the whitelist
 		this.selection = pruneData.whitelist();
 
@@ -234,23 +237,28 @@ public class Pruner {
 			progress.increment(1);
 		}
 
-		selection.addAll(structureManager.calculateChunksToKeep());
+		LongOpenHashSet chunksToKeep = structureManager.calculateChunksToKeep();
+		if (chunksToKeep == null) {
+			progress.done();
+			return;
+		}
+		selection.addAll(chunksToKeep);
 
 		// remove all chunks that need to be deleted
-		if (deFragmentDir(pruneData.regionDir(), allRegionFiles, progress, errorHandler)) {
+		if (deFragmentDir(pruneData.regionDir(), allRegionFiles, progress)) {
 			return;
 		}
-		if (deFragmentDir(pruneData.poiDir(), allPoiFiles, progress, errorHandler)) {
+		if (deFragmentDir(pruneData.poiDir(), allPoiFiles, progress)) {
 			return;
 		}
-		if (deFragmentDir(pruneData.entitiesDir(), allEntityFiles, progress, errorHandler)) {
+		if (deFragmentDir(pruneData.entitiesDir(), allEntityFiles, progress)) {
 			return;
 		}
 
 		progress.done();
 	}
 
-	private boolean deFragmentDir(File dir, LongOpenHashSet regions, Progress progress, ErrorHandler errorHandler) {
+	private boolean deFragmentDir(File dir, LongOpenHashSet regions, Progress progress) {
 		if (dir == null) {
 			return false;
 		}
@@ -274,7 +282,7 @@ public class Pruner {
 				ShortOpenHashSet selectedChunks = selection.getSelectedChunks(region);
 
 				Timer t = new Timer();
-				int pruned = deFragment(regionFile, selectedChunks, errorHandler);
+				int pruned = deFragment(regionFile, selectedChunks);
 				if (pruned == -1) {
 					progress.done();
 					return true;
