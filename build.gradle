@@ -3,21 +3,19 @@ plugins {
 	id 'com.github.johnrengelman.shadow' version '7.1.0'
 }
 
+jar.enabled = false
+
 sourceCompatibility = JavaLanguageVersion.of(17)
 targetCompatibility = JavaLanguageVersion.of(17)
 
 group 'net.querz'
-version '1.0-SNAPSHOT'
+version application_version
 
 repositories {
 	mavenCentral()
 	maven {
 		url 'https://jitpack.io/'
 	}
-}
-
-ext {
-	junitVersion = '5.8.2'
 }
 
 tasks.withType(JavaCompile) {
@@ -41,17 +39,26 @@ dependencies {
 	shadow 'me.tongfei:progressbar:0.9.3'
 	shadow 'commons-cli:commons-cli:1.5.0'
 
-	testImplementation("org.junit.jupiter:junit-jupiter-api:${junitVersion}")
-	testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:${junitVersion}")
+	testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+	testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
 }
 
 test {
 	useJUnitPlatform()
 }
 
+processResources {
+	filesMatching('META-INF/MANIFEST.MF') {
+		expand 'application_version': application_version
+	}
+}
+
 jar {
 	manifest {
-		attributes 'Main-Class': 'net.querz.worldpruner.Main'
+		attributes(
+				'Main-Class': 'net.querz.worldpruner.Main',
+				'Implementation-Version': application_version
+		)
 	}
 	dependsOn shadowJar
 }
@@ -61,5 +68,12 @@ shadowJar {
 		exclude(dependency('org.apache.logging.log4j:log4j-core:.*'))
 	}
 	configurations = [project.configurations.shadow]
-	classifier 'shadow-dev'
+	classifier ''
+}
+
+task runGUI(type: JavaExec) {
+	group 'runs'
+	description 'Run the GUI'
+	classpath sourceSets.main.runtimeClasspath
+	main 'net.querz.worldpruner.Main'
 }

@@ -1,10 +1,12 @@
 package net.querz.worldpruner.ui;
 
+import net.querz.worldpruner.Main;
 import net.querz.worldpruner.prune.PruneData;
 import net.querz.worldpruner.prune.Pruner;
 import net.querz.worldpruner.selection.Selection;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -30,7 +32,7 @@ public final class Window extends JFrame {
 		}
 
 		INSTANCE = new Window();
-		INSTANCE.setTitle("World Pruner");
+		INSTANCE.setTitle("World Pruner " + Main.getVersion());
 		INSTANCE.setSize(500, 250);
 		INSTANCE.setMinimumSize(new Dimension(500, 250));
 

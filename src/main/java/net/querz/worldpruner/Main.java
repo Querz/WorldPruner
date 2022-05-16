@@ -9,12 +9,16 @@ import net.querz.worldpruner.ui.Window;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.Enumeration;
+import java.util.jar.Manifest;
+
 public class Main {
 
 	private static final Logger LOGGER = LogManager.getLogger(Main.class);
 
 	public static void main(String[] args) {
-
 		if (args.length == 0) {
 			Window.create();
 		} else {
@@ -33,4 +37,34 @@ public class Main {
 			LOGGER.info("Pruning took " + t);
 		}
 	}
+
+	private static String version;
+
+	public static String getVersion() {
+		if (version == null) {
+			try {
+				version = readVersion();
+			} catch (IOException e) {
+				LOGGER.error("Could not read version from manifest: {}", e.getMessage());
+				version = "N/A";
+			}
+		}
+		return version;
+	}
+
+	private static String readVersion() throws IOException {
+		Enumeration<URL> resources = Main.class.getClassLoader().getResources("META-INF/MANIFEST.MF");
+		if (resources.hasMoreElements()) {
+			Manifest manifest = new Manifest(resources.nextElement().openStream());
+			String version = manifest.getMainAttributes().getValue("Implementation-Version");
+			if (version != null) {
+				return version;
+			} else {
+				// Leave version empty when in dev environment
+				return "";
+			}
+		}
+		throw new IOException("Could not find MANIFEST.MF");
+	}
+
 }
