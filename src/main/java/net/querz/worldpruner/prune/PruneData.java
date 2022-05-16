@@ -98,7 +98,7 @@ public record PruneData(
 				.hasArg()
 				.desc("The minimum time a chunk should have to be kept")
 				.build());
-		options.addOption(Option.builder("R")
+		options.addOption(Option.builder("r")
 				.longOpt("radius")
 				.hasArg()
 				.desc("The radius of additional chunks preserved around matching chunks")
