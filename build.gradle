@@ -3,6 +3,9 @@ plugins {
 	id 'com.github.johnrengelman.shadow' version '7.1.0'
 }
 
+sourceCompatibility = JavaLanguageVersion.of(17)
+targetCompatibility = JavaLanguageVersion.of(17)
+
 group 'net.querz'
 version '1.0-SNAPSHOT'
 
