@@ -39,6 +39,16 @@ public final class Window extends JFrame {
 		// icons
 		INSTANCE.setIconImages(INSTANCE.loadIcons());
 
+		JMenuBar menuBar = new JMenuBar();
+		JMenu info = new JMenu("Info");
+		JMenuItem about = new JMenuItem("About");
+		about.addActionListener(actionEvent -> {
+			AboutDialog.show(INSTANCE);
+		});
+		info.add(about);
+		menuBar.add(info);
+		INSTANCE.setJMenuBar(menuBar);
+
 		JPanel panel = new JPanel();
 		panel.setLayout(new BorderLayout());
 
