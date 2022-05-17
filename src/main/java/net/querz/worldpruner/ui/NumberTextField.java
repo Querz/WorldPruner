@@ -9,7 +9,6 @@ import javax.swing.text.PlainDocument;
 public class NumberTextField extends JTextField {
 
 	private final int min, max;
-	private int length;
 
 	public NumberTextField(int min, int max, String def, int cols) {
 		super(def, cols);
@@ -36,17 +35,14 @@ public class NumberTextField extends JTextField {
 			String before = getText(0, getLength());
 			super.insertString(offs, str, a);
 			String content = getText(0, getLength());
-			if (length == 0) {
-				length = Integer.toString(max).length();
-			}
-			if (content.length() > length) {
-				setText(before);
-				return;
-			}
 			try {
 				int i = Integer.parseInt(content);
-				if (i < min || i > max) {
-					setText(before);
+				if (i < min) {
+					setText(Integer.toString(min));
+				} else if (i > max) {
+					setText(Integer.toString(max));
+				} else if (!content.equals(Integer.toString(i))) {
+					setText(Integer.toString(i));
 				}
 			} catch (NumberFormatException ex) {
 				setText(before);
