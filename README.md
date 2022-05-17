@@ -1,4 +1,4 @@
-# WorldPruner
+# WorldPruner ![](https://user-images.githubusercontent.com/13237524/168894674-c2b8c07e-a4d6-4eb9-ab9d-b906b78dcb70.png)
 
 A simple GUI and command line app to prune chunks from a Minecraft Java Edition world.
 
