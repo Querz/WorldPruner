@@ -6,6 +6,7 @@ import org.apache.logging.log4j.Logger;
 public class CLIErrorHandler implements ErrorHandler {
 
 	private final boolean skip;
+	private boolean error;
 
 	public CLIErrorHandler(boolean skip) {
 		this.skip = skip;
@@ -13,6 +14,7 @@ public class CLIErrorHandler implements ErrorHandler {
 
 	@Override
 	public boolean handle(Logger logger, String msg, Object... params) {
+		onError();
 		if (skip) {
 			logger.warn(msg, params);
 		} else {
@@ -23,6 +25,7 @@ public class CLIErrorHandler implements ErrorHandler {
 
 	@Override
 	public boolean handle(Logger logger, Throwable t, String msg, Object... params) {
+		onError();
 		if (skip) {
 			logger.warn(msg, params, t);
 		} else {
@@ -30,4 +33,16 @@ public class CLIErrorHandler implements ErrorHandler {
 		}
 		return !skip;
 	}
+
+	@Override
+	public boolean wasSuccessful() {
+		return !error;
+	}
+
+	private void onError() {
+		if (!skip) {
+			error = true;
+		}
+	}
+
 }

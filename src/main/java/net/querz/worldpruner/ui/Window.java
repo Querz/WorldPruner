@@ -142,7 +142,15 @@ public final class Window extends JFrame {
 						radiusField.getNumber(),
 						selection
 				);
-				new Pruner(pruneData, new DialogErrorHandler(INSTANCE)).prune(progressBar);
+				DialogErrorHandler errorHandler = new DialogErrorHandler(INSTANCE);
+				new Pruner(pruneData, errorHandler).prune(progressBar);
+				if (errorHandler.wasSuccessful()) {
+					JOptionPane.showMessageDialog(
+							INSTANCE,
+							"Successfully pruned world",
+							"Success",
+							JOptionPane.INFORMATION_MESSAGE);
+				}
 			}).start();
 		});
 
