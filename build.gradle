@@ -9,7 +9,6 @@ sourceCompatibility = JavaLanguageVersion.of(17)
 targetCompatibility = JavaLanguageVersion.of(17)
 
 group 'net.querz'
-version application_version
 
 repositories {
 	mavenCentral()
