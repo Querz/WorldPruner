@@ -1,16 +1,20 @@
 package net.querz.worldpruner.ui;
 
 import net.querz.worldpruner.prune.Progress;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import javax.swing.*;
 
 public class ProgressBar extends JProgressBar implements Progress {
+
+	private final static Logger LOGGER = LogManager.getLogger(ProgressBar.class);
 
 	@Override
 	public void setMaximum(int max) {
 		if (SwingUtilities.isEventDispatchThread()) {
 			super.setMaximum(max);
 		} else {
-			toRuntimeException(() -> SwingUtilities.invokeAndWait(() -> super.setMaximum(max)));
+			logException(() -> SwingUtilities.invokeAndWait(() -> super.setMaximum(max)));
 		}
 	}
 
@@ -19,7 +23,7 @@ public class ProgressBar extends JProgressBar implements Progress {
 		if (SwingUtilities.isEventDispatchThread()) {
 			super.setMinimum(min);
 		} else {
-			toRuntimeException(() -> SwingUtilities.invokeAndWait(() -> super.setMinimum(min)));
+			logException(() -> SwingUtilities.invokeAndWait(() -> super.setMinimum(min)));
 		}
 	}
 
@@ -28,7 +32,7 @@ public class ProgressBar extends JProgressBar implements Progress {
 		if (SwingUtilities.isEventDispatchThread()) {
 			setValue(getValue() + inc);
 		} else {
-			toRuntimeException(() -> SwingUtilities.invokeAndWait(() -> setValue(getValue() + inc)));
+			logException(() -> SwingUtilities.invokeAndWait(() -> setValue(getValue() + inc)));
 		}
 	}
 
@@ -37,7 +41,7 @@ public class ProgressBar extends JProgressBar implements Progress {
 		if (SwingUtilities.isEventDispatchThread()) {
 			super.setValue(value);
 		} else {
-			toRuntimeException(() -> SwingUtilities.invokeAndWait(() -> super.setValue(value)));
+			logException(() -> SwingUtilities.invokeAndWait(() -> super.setValue(value)));
 		}
 	}
 
@@ -53,7 +57,7 @@ public class ProgressBar extends JProgressBar implements Progress {
 		if (SwingUtilities.isEventDispatchThread()) {
 			action.run();
 		} else {
-			toRuntimeException(() -> SwingUtilities.invokeAndWait(action));
+			logException(() -> SwingUtilities.invokeAndWait(action));
 		}
 	}
 
@@ -70,15 +74,15 @@ public class ProgressBar extends JProgressBar implements Progress {
 		if (SwingUtilities.isEventDispatchThread()) {
 			action.run();
 		} else {
-			toRuntimeException(() -> SwingUtilities.invokeAndWait(action));
+			logException(() -> SwingUtilities.invokeAndWait(action));
 		}
 	}
 
-	private void toRuntimeException(ExceptionRunner r) {
+	private void logException(ExceptionRunner r) {
 		try {
 			r.run();
 		} catch (Exception ex) {
-			throw new RuntimeException(ex);
+			LOGGER.error("ProgressBar error", ex);
 		}
 	}
 
