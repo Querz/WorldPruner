@@ -23,7 +23,7 @@ To use the GUI, open the `WorldPruner.jar` file with Java.
 You simply need to open your world folder with the file chooser, provide a minimum time, a radius and an
 optional [whitelist](#whitelisting-chunks) containing all chunks that should be kept in any case.
 
-![](https://user-images.githubusercontent.com/13237524/168639898-b07af314-3539-4a72-b60e-7a64aac8f49e.png)
+![](https://user-images.githubusercontent.com/13237524/168843781-56dcff9b-a29f-4ec6-a191-ea006053f493.png)
 
 ### CLI Mode
 
