@@ -11,6 +11,7 @@ import java.util.function.BiFunction;
 public class FileTextField extends JPanel {
 
 	private final JTextField field = new JTextField();
+	private final JButton open = new JButton("Open");
 
 	private boolean valid;
 
@@ -23,8 +24,7 @@ public class FileTextField extends JPanel {
 		SpringLayout layout = new SpringLayout();
 		setLayout(layout);
 
-		JButton choose = new JButton("Open");
-		choose.addActionListener(e -> {
+		open.addActionListener(e -> {
 
 			JFileChooser chooser = new JFileChooser();
 			chooser.setAcceptAllFileFilterUsed(false);
@@ -61,14 +61,14 @@ public class FileTextField extends JPanel {
 		});
 
 		add(field);
-		add(choose);
+		add(open);
 
-		choose.setMargin(new Insets(1, 5, 1, 5));
+		open.setMargin(new Insets(1, 5, 1, 5));
 
-		choose.setVerticalAlignment(JButton.CENTER);
+		open.setVerticalAlignment(JButton.CENTER);
 
 		SpringUtilities.makeCompactGrid(this, 1, 2, 0, 0, 0, 0);
-		layout.putConstraint(SpringLayout.VERTICAL_CENTER, choose, 0, SpringLayout.VERTICAL_CENTER, field);
+		layout.putConstraint(SpringLayout.VERTICAL_CENTER, open, 0, SpringLayout.VERTICAL_CENTER, field);
 	}
 
 	public void setOnUpdate(Runnable action) {
@@ -115,5 +115,11 @@ public class FileTextField extends JPanel {
 			field.setBackground(Colors.INVALID_BACKGROUND);
 			field.setToolTipText(invalidTooltip);
 		}
+	}
+
+	@Override
+	public void setEnabled(boolean enabled) {
+		field.setEnabled(enabled);
+		open.setEnabled(enabled);
 	}
 }

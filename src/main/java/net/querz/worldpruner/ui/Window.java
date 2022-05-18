@@ -12,6 +12,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.List;
 
@@ -145,21 +146,43 @@ public final class Window extends JFrame {
 				selection = new Selection();
 			}
 
+			INSTANCE.setFieldsEnabled(false,
+				worldField,
+				inhabitedTimeField,
+				radiusField,
+				whitelistField,
+				prune);
+
 			new Thread(() -> {
-				PruneData pruneData = new PruneData(
+				try {
+					PruneData pruneData = new PruneData(
 						worldDir,
 						inhabitedTimeField.getDuration(),
 						radiusField.getNumber(),
 						selection
-				);
-				DialogErrorHandler errorHandler = new DialogErrorHandler(INSTANCE);
-				new Pruner(pruneData, errorHandler).prune(progressBar);
-				if (errorHandler.wasSuccessful()) {
-					JOptionPane.showMessageDialog(
+					);
+					DialogErrorHandler errorHandler = new DialogErrorHandler(INSTANCE);
+					new Pruner(pruneData, errorHandler).prune(progressBar);
+					if (errorHandler.wasSuccessful()) {
+						JOptionPane.showMessageDialog(
 							INSTANCE,
 							"Successfully pruned world",
 							"Success",
 							JOptionPane.INFORMATION_MESSAGE);
+					}
+				} finally {
+					try {
+						SwingUtilities.invokeAndWait(() -> {
+							INSTANCE.setFieldsEnabled(true,
+								worldField,
+								inhabitedTimeField,
+								radiusField,
+								whitelistField,
+								prune);
+						});
+					} catch (InterruptedException | InvocationTargetException ex) {
+						LOGGER.error("Failed to re-enable ui fields", ex);
+					}
 				}
 			}).start();
 		});
@@ -169,6 +192,12 @@ public final class Window extends JFrame {
 		INSTANCE.setLocationRelativeTo(null);
 		INSTANCE.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		INSTANCE.setVisible(true);
+	}
+
+	private void setFieldsEnabled(boolean enable, JComponent... components) {
+		for (JComponent component : components) {
+			component.setEnabled(enable);
+		}
 	}
 
 	private List<Image> loadIcons() {
