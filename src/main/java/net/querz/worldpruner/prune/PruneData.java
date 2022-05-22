@@ -4,6 +4,7 @@ import net.querz.worldpruner.selection.Selection;
 import org.apache.commons.cli.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -118,6 +119,10 @@ public record PruneData(
 				.longOpt("continue-on-error")
 				.desc("If execution should continue if an error occurs")
 				.build());
+		options.addOption(Option.builder("d")
+				.longOpt("debug")
+				.desc("Enables debug logging to the log file")
+				.build());
 
 		CommandLineParser parser = new DefaultParser();
 		try {
@@ -145,6 +150,11 @@ public record PruneData(
 				LOGGER.error("Could not find world at \"{}\"", worldDir.getAbsolutePath());
 				return null;
 			}
+
+			if (line.hasOption("debug")) {
+				ThreadContext.put("dynamicLogLevel", "DEBUG");
+			}
+
 			return new PruneData(world, inhabitedTime, radius, whitelist, line.hasOption("continue-on-error"));
 		} catch (ParseException | IllegalArgumentException e) {
 			LOGGER.error(e.getMessage());

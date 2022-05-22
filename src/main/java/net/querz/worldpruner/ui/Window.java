@@ -6,7 +6,7 @@ import net.querz.worldpruner.prune.Pruner;
 import net.querz.worldpruner.selection.Selection;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
+import org.apache.logging.log4j.ThreadContext;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -191,6 +191,8 @@ public final class Window extends JFrame {
 		INSTANCE.pack();
 		INSTANCE.setLocationRelativeTo(null);
 		INSTANCE.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+		// make sure that the AWT Event Queue thread has this ThreadContext map
+		SwingUtilities.invokeLater(() -> ThreadContext.put("dynamicLogLevel", Main.getLogLevel()));
 		INSTANCE.setVisible(true);
 	}
 

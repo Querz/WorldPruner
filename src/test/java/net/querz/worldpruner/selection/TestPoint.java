@@ -12,49 +12,49 @@ public class TestPoint {
 		@Test
 		void zero() {
 			Point p = new Point(32, 32);
-			Point p2 = p.normalizeChunkInRegion();
+			Point p2 = p.asRelativeChunk();
 			assertEquals(new Point(0, 0), p2);
 		}
 
 		@Test
 		void positive() {
 			Point p = new Point(63, 63);
-			Point p2 = p.normalizeChunkInRegion();
+			Point p2 = p.asRelativeChunk();
 			assertEquals(new Point(31, 31), p2);
 		}
 
 		@Test
 		void negative() {
 			Point p = new Point(-1, -1);
-			Point p2 = p.normalizeChunkInRegion();
+			Point p2 = p.asRelativeChunk();
 			assertEquals(new Point(31, 31), p2);
 		}
 
 		@Test
 		void negativeLower() {
 			Point p = new Point(-31, -31);
-			Point p2 = p.normalizeChunkInRegion();
+			Point p2 = p.asRelativeChunk();
 			assertEquals(new Point(1, 1), p2);
 		}
 
 		@Test
 		void negativeZero() {
 			Point p = new Point(-32, -32);
-			Point p2 = p.normalizeChunkInRegion();
+			Point p2 = p.asRelativeChunk();
 			assertEquals(new Point(0, 0), p2);
 		}
 
 		@Test
 		void moreNegative() {
 			Point p = new Point(-63, -63);
-			Point p2 = p.normalizeChunkInRegion();
+			Point p2 = p.asRelativeChunk();
 			assertEquals(new Point(1, 1), p2);
 		}
 
 		@Test
 		void moreNegativeZero() {
 			Point p = new Point(-64, -64);
-			Point p2 = p.normalizeChunkInRegion();
+			Point p2 = p.asRelativeChunk();
 			assertEquals(new Point(0, 0), p2);
 		}
 	}
@@ -68,7 +68,7 @@ public class TestPoint {
 
 			Point p = new Point(cx, cz);
 
-			System.out.println(p.getAsRelativeChunk());
+			System.out.println(p.asChunkIndex());
 		}
 	}
 }

@@ -1,7 +1,6 @@
 package net.querz.worldpruner.selection;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -13,7 +12,7 @@ public class TestSelection {
 
 		@Test
 		void noInversion() {
-			Long2ObjectOpenHashMap<ShortOpenHashSet> sel = new Long2ObjectOpenHashMap<>();
+			Long2ObjectOpenHashMap<ChunkSet> sel = new Long2ObjectOpenHashMap<>();
 
 			// complete region
 			sel.put(new Point(0, 0).asLong(), null);
@@ -26,7 +25,7 @@ public class TestSelection {
 
 		@Test
 		void inversion() {
-			Long2ObjectOpenHashMap<ShortOpenHashSet> sel = new Long2ObjectOpenHashMap<>();
+			Long2ObjectOpenHashMap<ChunkSet> sel = new Long2ObjectOpenHashMap<>();
 			sel.put(new Point(0, 0).asLong(), null);
 			Selection s = new Selection(sel, true);
 			assertFalse(s.isChunkSelected(0, 0));
@@ -37,11 +36,11 @@ public class TestSelection {
 
 		@Test
 		void noInversionIndividualChunks() {
-			Long2ObjectOpenHashMap<ShortOpenHashSet> sel = new Long2ObjectOpenHashMap<>();
+			Long2ObjectOpenHashMap<ChunkSet> sel = new Long2ObjectOpenHashMap<>();
 			Selection s = new Selection(sel, false);
-			ShortOpenHashSet c = new ShortOpenHashSet();
-			c.add(new Point(0, 0).getAsRelativeChunk());
-			c.add(new Point(5, 8).getAsRelativeChunk());
+			ChunkSet c = new ChunkSet();
+			c.set(new Point(0, 0).asChunkIndex());
+			c.set(new Point(5, 8).asChunkIndex());
 			sel.put(new Point(0, 0).asLong(), c);
 			assertTrue(s.isChunkSelected(0, 0));
 			assertTrue(s.isChunkSelected(5, 8));
@@ -56,11 +55,11 @@ public class TestSelection {
 
 		@Test
 		void inversionIndividualChunks() {
-			Long2ObjectOpenHashMap<ShortOpenHashSet> sel = new Long2ObjectOpenHashMap<>();
+			Long2ObjectOpenHashMap<ChunkSet> sel = new Long2ObjectOpenHashMap<>();
 			Selection s = new Selection(sel, true);
-			ShortOpenHashSet c = new ShortOpenHashSet();
-			c.add(new Point(0, 0).getAsRelativeChunk());
-			c.add(new Point(5, 8).getAsRelativeChunk());
+			ChunkSet c = new ChunkSet();
+			c.set(new Point(0, 0).asChunkIndex());
+			c.set(new Point(5, 8).asChunkIndex());
 			sel.put(new Point(0, 0).asLong(), c);
 			assertFalse(s.isChunkSelected(0, 0));
 			assertFalse(s.isChunkSelected(5, 8));
