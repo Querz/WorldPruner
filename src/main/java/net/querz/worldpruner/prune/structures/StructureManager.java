@@ -46,7 +46,7 @@ public class StructureManager {
 		for (StructureID structure : structuresThatShouldBeKept) {
 			StructureData data = cachedStructures.get(structure);
 			if (data == null) {
-				LOGGER.warn("Failed find structure {} at {}", structure.id(), new Point(structure.coords()).chunkToBlock());
+				LOGGER.warn("Failed to find structure {} at {}", structure.id(), new Point(structure.coords()).chunkToBlock());
 				continue;
 			}
 			for (StructureData.BoundingBox boundingBox : data.getBoundingBoxes()) {
