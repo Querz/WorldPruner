@@ -3,12 +3,11 @@ package net.querz.worldpruner.selection;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
 import java.io.*;
 
 public class Selection {
 
-	protected Long2ObjectOpenHashMap<ShortOpenHashSet> selection;
+	protected Long2ObjectOpenHashMap<ChunkSet> selection;
 	protected boolean inverted;
 
 	public Selection() {
@@ -16,13 +15,13 @@ public class Selection {
 		this.inverted = false;
 	}
 
-	protected Selection(Long2ObjectOpenHashMap<ShortOpenHashSet> selection, boolean inverted) {
+	protected Selection(Long2ObjectOpenHashMap<ChunkSet> selection, boolean inverted) {
 		this.selection = selection;
 		this.inverted = inverted;
 	}
 
 	public static Selection parseCSV(File csvFile) throws IOException {
-		Long2ObjectOpenHashMap<ShortOpenHashSet> sel = new Long2ObjectOpenHashMap<>();
+		Long2ObjectOpenHashMap<ChunkSet> sel = new Long2ObjectOpenHashMap<>();
 		Selection selection = new Selection(sel, false);
 		try (BufferedReader br = new BufferedReader(new FileReader(csvFile))) {
 			String line;
@@ -82,26 +81,26 @@ public class Selection {
 	public boolean isChunkSelected(int x, int z) {
 		Point pChunk = new Point(x, z);
 		Point pRegion = pChunk.chunkToRegion();
-		return isChunkSelected(pRegion.asLong(), pChunk.getAsRelativeChunk());
+		return isChunkSelected(pRegion.asLong(), pChunk.asChunkIndex());
 	}
 
 	protected boolean isChunkSelected(long region, short chunk) {
 		if (selection.containsKey(region)) {
-			ShortOpenHashSet chunks = selection.get(region);
-			return (chunks == null || chunks.contains(chunk)) != inverted;
+			ChunkSet chunks = selection.get(region);
+			return (chunks == null || chunks.get(chunk)) != inverted;
 		} else {
 			return inverted;
 		}
 	}
 
 	public void addChunk(Point chunk) {
-		addChunk(chunk.chunkToRegion().asLong(), chunk.getAsRelativeChunk());
+		addChunk(chunk.chunkToRegion().asLong(), chunk.asChunkIndex());
 	}
 
 
 	public void addChunk(long chunkCoords) {
 		Point chunk = new Point(chunkCoords);
-		addChunk(chunk.chunkToRegion().asLong(), chunk.getAsRelativeChunk());
+		addChunk(chunk.chunkToRegion().asLong(), chunk.asChunkIndex());
 	}
 
 	protected void addChunk(long region, short chunk) {
@@ -109,12 +108,12 @@ public class Selection {
 			return;
 		}
 		if (selection.containsKey(region)) {
-			ShortOpenHashSet chunks = selection.get(region);
+			ChunkSet chunks = selection.get(region);
 			if (chunks != null) {
 				if (inverted) {
-					chunks.remove(chunk);
+					chunks.clear(chunk);
 				} else {
-					chunks.add(chunk);
+					chunks.set(chunk);
 				}
 				if (chunks.size() == 1024) {
 					selection.put(region, null);
@@ -123,8 +122,8 @@ public class Selection {
 				}
 			}
 		} else {
-			ShortOpenHashSet chunks = new ShortOpenHashSet();
-			chunks.add(chunk);
+			ChunkSet chunks = new ChunkSet();
+			chunks.set(chunk);
 			selection.put(region, chunks);
 		}
 	}
@@ -145,29 +144,29 @@ public class Selection {
 		}
 	}
 
-	public ShortOpenHashSet getSelectedChunks(Point region) {
+	public ChunkSet getSelectedChunks(Point region) {
 		if (inverted) {
 			if (selection.containsKey(region.asLong())) {
-				return invertChunks(selection.get(region.asLong()));
+				return invertChunks(selection.get(region.asLong())).immutable();
 			} else {
 				return null;
 			}
 		}
 		if (selection.containsKey(region.asLong())) {
-			return selection.get(region.asLong());
+			return selection.get(region.asLong()).immutable();
 		} else {
-			return new ShortOpenHashSet(0);
+			return ChunkSet.EMPTY_SET;
 		}
 	}
 
-	private static ShortOpenHashSet invertChunks(ShortOpenHashSet chunks) {
+	private static ChunkSet invertChunks(ChunkSet chunks) {
 		if (chunks == null) {
-			return new ShortOpenHashSet(0);
+			return new ChunkSet();
 		}
-		ShortOpenHashSet result = new ShortOpenHashSet(1024 - chunks.size());
+		ChunkSet result = new ChunkSet();
 		for (short i = 0; i < 1024; i++) {
-			if (!chunks.contains(i)) {
-				result.add(i);
+			if (!chunks.get(i)) {
+				result.set(i);
 			}
 		}
 		return result;
@@ -176,7 +175,7 @@ public class Selection {
 	public void merge(Selection other) {
 		if (!inverted && !other.inverted) {
 
-			for (Long2ObjectMap.Entry<ShortOpenHashSet> entry : other.selection.long2ObjectEntrySet()) {
+			for (Long2ObjectMap.Entry<ChunkSet> entry : other.selection.long2ObjectEntrySet()) {
 				long r = entry.getLongKey();
 				if (selection.containsKey(r)) {
 					selection.put(r, add(selection.get(r), entry.getValue()));
@@ -186,10 +185,10 @@ public class Selection {
 			}
 		} else if (inverted && !other.inverted) {
 			// subtract all other chunks from this selection
-			for (Long2ObjectMap.Entry<ShortOpenHashSet> entry : other.selection.long2ObjectEntrySet()) {
+			for (Long2ObjectMap.Entry<ChunkSet> entry : other.selection.long2ObjectEntrySet()) {
 				long r = entry.getLongKey();
 				if (selection.containsKey(r)) {
-					ShortOpenHashSet result = subtract(selection.get(r), entry.getValue());
+					ChunkSet result = subtract(selection.get(r), entry.getValue());
 					if (result.size() == 0) {
 						selection.remove(r);
 					} else {
@@ -200,10 +199,10 @@ public class Selection {
 		} else if (!inverted) { // this selection is not inverted but the other is
 			// if something is marked in the other selection, we add it to this selection
 			// remember the regions we already touched and ignore them in the next loop
-			for (Long2ObjectMap.Entry<ShortOpenHashSet> entry : other.selection.long2ObjectEntrySet()) {
+			for (Long2ObjectMap.Entry<ChunkSet> entry : other.selection.long2ObjectEntrySet()) {
 				long r = entry.getLongKey();
 				if (selection.containsKey(r)) {
-					ShortOpenHashSet result;
+					ChunkSet result;
 					if ((result = subtract(cloneValue(entry.getValue()), selection.get(r))).size() == 0) {
 						selection.remove(r);
 					} else {
@@ -215,7 +214,7 @@ public class Selection {
 			}
 
 			// if something is marked in this selection, but not the other, we remove it so it's marked when inverted
-			for (Long2ObjectMap.Entry<ShortOpenHashSet> entry : selection.long2ObjectEntrySet()) {
+			for (Long2ObjectMap.Entry<ChunkSet> entry : selection.long2ObjectEntrySet()) {
 				long r = entry.getLongKey();
 				if (!other.selection.containsKey(r)) {
 					selection.remove(r);
@@ -225,7 +224,7 @@ public class Selection {
 			inverted = true;
 		} else { // both are inverted
 
-			for (Long2ObjectMap.Entry<ShortOpenHashSet> entry : selection.long2ObjectEntrySet()) {
+			for (Long2ObjectMap.Entry<ChunkSet> entry : selection.long2ObjectEntrySet()) {
 				long r = entry.getLongKey();
 				if (!other.selection.containsKey(r)) {
 					// region does not exist in other selection, so it is fully marked.
@@ -233,7 +232,7 @@ public class Selection {
 					selection.remove(r);
 				} else {
 					// region exists in other selection so we need to union them
-					ShortOpenHashSet union = union(entry.getValue(), other.selection.get(r));
+					ChunkSet union = union(entry.getValue(), other.selection.get(r));
 					// and put it in this selection
 					if (union != null && union.size() == 0) {
 						// the union is completely selected, so we remove this region to fully mark it
@@ -246,46 +245,46 @@ public class Selection {
 		}
 	}
 
-	private static ShortOpenHashSet cloneValue(ShortOpenHashSet v) {
+	private static ChunkSet cloneValue(ChunkSet v) {
 		return v == null ? null : v.clone();
 	}
 
-	private static ShortOpenHashSet union(ShortOpenHashSet a, ShortOpenHashSet b) {
+	private static ChunkSet union(ChunkSet a, ChunkSet b) {
 		if (a == null) {
 			return cloneValue(b);
 		}
 		if (b == null) {
 			return a;
 		}
-		for (short l : a) {
-			if (!b.contains(l)) {
-				a.remove(l);
+		a.forEach(l -> {
+			if (!b.get(l)) {
+				a.clear(l);
 			}
-		}
-		for (short l : b) {
-			if (!a.contains(l)) {
-				a.remove(l);
+		});
+		b.forEach(l -> {
+			if (!a.get(l)) {
+				a.clear(l);
 			}
-		}
+		});
 		return a;
 	}
 
-	private static ShortOpenHashSet subtract(ShortOpenHashSet source, ShortOpenHashSet target) {
+	private static ChunkSet subtract(ChunkSet source, ChunkSet target) {
 		if (source == null) {
 			return invertChunks(target);
 		}
 		if (target == null) {
-			return new ShortOpenHashSet(0);
+			return new ChunkSet();
 		}
-		source.removeIf(target::contains);
+		source.removeIf(target::get);
 		return source;
 	}
 
-	private static ShortOpenHashSet add(ShortOpenHashSet source, ShortOpenHashSet target) {
+	private static ChunkSet add(ChunkSet source, ChunkSet target) {
 		if (source == null || target == null) {
 			return null;
 		}
-		source.addAll(target);
+		source.merge(target);
 		return source.size() == 1024 ? null : source;
 	}
 
@@ -295,13 +294,61 @@ public class Selection {
 		}
 	}
 
+	public Stats getStats() {
+		int totalSelectedChunks = 0;
+		int totalChunksOfPartiallySelectedRegions = 0;
+		int partiallySelectedRegions = 0;
+		int fullySelectedRegions = 0;
+		int below64 = 0, below128 = 0, below256 = 0, below512 = 0;
+		for (Long2ObjectMap.Entry<ChunkSet> entry : selection.long2ObjectEntrySet()) {
+			if (entry.getValue() == null) {
+				totalSelectedChunks += 1024;
+				fullySelectedRegions++;
+			} else {
+				int size = entry.getValue().size();
+				totalSelectedChunks += size;
+				totalChunksOfPartiallySelectedRegions += size;
+				partiallySelectedRegions++;
+				if (size < 512) {
+					below512++;
+				}
+				if (size < 256) {
+					below256++;
+				}
+				if (size < 128) {
+					below128++;
+				}
+				if (size < 64) {
+					below64++;
+				}
+			}
+		}
+		return new Stats(
+			totalSelectedChunks,
+			totalChunksOfPartiallySelectedRegions,
+			partiallySelectedRegions,
+			fullySelectedRegions,
+			below64, below128, below256, below512);
+	}
+
+	public record Stats(
+		int totalSelectedChunks,
+		int totalChunksOfPartiallySelectedRegions,
+		int partiallySelectedRegions,
+		int fullySelectedRegions,
+		int below64, int below128, int below256, int below512) {}
+
 	@Override
 	public String toString() {
+		return getStats().toString();
+	}
+
+	public String toCSV() {
 		StringBuilder sb = new StringBuilder();
 		if (inverted) {
 			sb.append("inverted\n");
 		}
-		for (Long2ObjectMap.Entry<ShortOpenHashSet> e : selection.long2ObjectEntrySet()) {
+		for (Long2ObjectMap.Entry<ChunkSet> e : selection.long2ObjectEntrySet()) {
 			Point region = new Point(e.getLongKey());
 			if (e.getValue() == null) {
 				sb.append(region.x()).append(';').append(region.z()).append('\n');

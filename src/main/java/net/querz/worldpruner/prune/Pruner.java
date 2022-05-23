@@ -1,7 +1,6 @@
 package net.querz.worldpruner.prune;
 
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import it.unimi.dsi.fastutil.shorts.ShortOpenHashSet;
 import net.querz.mca.Chunk;
 import net.querz.mca.MCAFile;
 import net.querz.mca.MCAFileHandle;
@@ -10,13 +9,13 @@ import net.querz.mca.seekable.SeekableFile;
 import net.querz.nbt.CompoundTag;
 import net.querz.nbt.Tag;
 import net.querz.worldpruner.cli.Timer;
+import net.querz.worldpruner.selection.ChunkSet;
 import net.querz.worldpruner.selection.PrunerSelectionStreamTagVisitor;
 import net.querz.worldpruner.selection.Selection;
 import net.querz.worldpruner.prune.structures.StructureManager;
 import net.querz.worldpruner.selection.Point;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -97,34 +96,30 @@ public class Pruner {
 		return regions;
 	}
 
-	private int deFragment(File file, ShortOpenHashSet whitelist) throws IOException {
+	private DeFragmentResult deFragment(File file, ChunkSet whitelist) throws IOException {
 
 		// if the file only contains the header or the whitelist is empty we delete it
 		if (file.length() <= 8192 || whitelist != null && whitelist.isEmpty()) {
 			if (file.delete()) {
-				LOGGER.info("Deleted empty file {}", file);
+				LOGGER.info("Deleted empty file {} with size {}", file, file.length());
 			} else {
-				if (errorHandler.handle(LOGGER, "Failed to delete empty file {}", file)) {
-					return -1;
+				if (errorHandler.handle(LOGGER, "Failed to delete empty file {} with size {}", file, file.length())) {
+					return new DeFragmentResult(0, 0, true);
 				}
 			}
-			return 0;
+			return new DeFragmentResult(1024, 0, false);
 		}
 
 		File tempFile = File.createTempFile(file.getName(), null, null);
 
 		int globalOffset = 2; // chunk data starts at 8192 (after 2 sectors)
 		int skippedChunks = 0;
+		int deletedChunks = 0;
 
 		try (RandomAccessFile temp = new RandomAccessFile(tempFile, "rw");
 			 RandomAccessFile source = new RandomAccessFile(file, "r")) {
 
 			for (short i = 0; i < 1024; i++) {
-				if (whitelist != null && !whitelist.contains(i)) {
-					skippedChunks++;
-					continue;
-				}
-
 				// read chunk data from source
 				source.seek(i * 4);
 
@@ -135,6 +130,11 @@ public class Pruner {
 				int sectors = source.read();
 				if (offset == 0 || sectors <= 0) {
 					skippedChunks++;
+					continue;
+				}
+
+				if (whitelist != null && !whitelist.get(i)) {
+					deletedChunks++;
 					continue;
 				}
 
@@ -169,21 +169,24 @@ public class Pruner {
 		if (skippedChunks == 1024) {
 			if (tempFile.exists()) {
 				if (!tempFile.delete()) {
-					LOGGER.warn("Failed to delete temp file {}", tempFile);
+					LOGGER.warn("Failed to delete temp file {} with size {}", tempFile, tempFile.length());
 				}
 			}
 			if (file.delete()) {
-				LOGGER.info("Deleted {} because it is empty", file);
+				LOGGER.info("Deleted {} with size {} because it is empty", file, file.length());
 			} else {
-				if (errorHandler.handle(LOGGER, "Failed to delete {} when all chunks were pruned", file)) {
-					return -1;
+				if (errorHandler.handle(LOGGER, "Failed to delete {} with size {} when all chunks were pruned", file, file.length())) {
+					return new DeFragmentResult(skippedChunks, deletedChunks, true);
 				}
 			}
 		} else {
+			LOGGER.info("Overwriting {} with size {} with temp file {} with size {}", file, file.length(), tempFile, tempFile.length());
 			Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		}
-		return 1024 - skippedChunks;
+		return new DeFragmentResult(skippedChunks, deletedChunks, false);
 	}
+
+	record DeFragmentResult(int skippedChunks, int deletedChunks, boolean error) {}
 
 	private File toFile(File parent, Point p) {
 		return new File(parent, String.format("r.%d.%d.mca", p.x(), p.z()));
@@ -197,70 +200,88 @@ public class Pruner {
 		progress.setMessage("Indexing files");
 		loadAllFiles();
 
-		progress.setIndeterminate(false);
-		progress.setMinimum(0);
-		progress.setMaximum(allRegionFiles.size());
+		if (!pruneData.whitelistOnly()) {
 
-		// collect all chunks that need to be kept based on InhabitedTime
-		for (long f : allRegionFiles) {
-			Timer t = new Timer();
-			Point region = new Point(f);
-			File regionFile = toFile(pruneData.regionDir(), region);
+			progress.setIndeterminate(false);
+			progress.setMinimum(0);
+			progress.setMaximum(allRegionFiles.size());
 
-			MCAFile mcaFile;
-			try {
-				mcaFile = loadMCAFile(regionFile);
-			} catch (IOException ex) {
-				if (errorHandler.handle(LOGGER, ex, "Failed to load mca file {}", regionFile)) {
-					progress.done();
-					return;
+			// collect all chunks that need to be kept based on InhabitedTime
+			for (long f : allRegionFiles) {
+				Timer t = new Timer();
+				Point region = new Point(f);
+				File regionFile = toFile(pruneData.regionDir(), region);
+
+				// if the file is empty or only its header exists, we skip it
+				if (regionFile.exists() && regionFile.length() <= 8192) {
+					LOGGER.info("Skipped empty mca file {} with size {}", regionFile, regionFile.length());
+					continue;
 				}
-				progress.increment(1);
-				selection.addRegion(f);
-				continue;
-			}
 
-			for (Chunk chunk : mcaFile) {
-				if (chunk != null) {
-					structureManager.checkChunk(chunk);
-					// check InhabitedTime with radius
-					if (skipChunk(chunk)) {
-						Point point = new Point(chunk.getX(), chunk.getZ());
-						selection.addChunk(point);
-						applyRadius(point);
+				MCAFile mcaFile;
+				try {
+					mcaFile = loadMCAFile(regionFile);
+				} catch (IOException ex) {
+					if (errorHandler.handle(LOGGER, ex, "Failed to load mca file {}", regionFile)) {
+						progress.done();
+						return;
+					}
+					progress.increment(1);
+					selection.addRegion(f);
+					continue;
+				}
+
+				for (Chunk chunk : mcaFile) {
+					if (chunk != null) {
+						structureManager.checkChunk(chunk);
+						// check InhabitedTime with radius
+						if (skipChunk(chunk)) {
+							Point point = new Point(chunk.getX(), chunk.getZ());
+							selection.addChunk(point);
+							applyRadius(point);
+						}
 					}
 				}
+
+				LOGGER.info("Took {} to collect chunks in {}", t, regionFile);
+
+				progress.increment(1);
 			}
 
-			LOGGER.info("Took {} to collect chunks in {}", t, regionFile);
-
-			progress.increment(1);
+			LongOpenHashSet chunksToKeep = structureManager.calculateChunksToKeep();
+			if (chunksToKeep == null) {
+				progress.done();
+				return;
+			}
+			selection.addAll(chunksToKeep);
 		}
 
-		LongOpenHashSet chunksToKeep = structureManager.calculateChunksToKeep();
-		if (chunksToKeep == null) {
-			progress.done();
-			return;
-		}
-		selection.addAll(chunksToKeep);
+		LOGGER.info(selection.getStats());
 
 		// remove all chunks that need to be deleted
-		if (deFragmentDir(pruneData.regionDir(), allRegionFiles, progress)) {
+		DeFragmentResult result;
+		if ((result = deFragmentDir(pruneData.regionDir(), allRegionFiles, progress)).error()) {
 			return;
 		}
-		if (deFragmentDir(pruneData.poiDir(), allPoiFiles, progress)) {
+		LOGGER.info("DeFragmented files in {} with result {}", pruneData.regionDir(), result);
+
+		if ((result = deFragmentDir(pruneData.poiDir(), allPoiFiles, progress)).error()) {
 			return;
 		}
-		if (deFragmentDir(pruneData.entitiesDir(), allEntityFiles, progress)) {
+		LOGGER.info("DeFragmented files in {} with result {}", pruneData.poiDir(), result);
+
+		if ((result = deFragmentDir(pruneData.entitiesDir(), allEntityFiles, progress)).error()) {
 			return;
 		}
+		LOGGER.info("DeFragmented files in {} with result {}", pruneData.entitiesDir(), result);
 
 		progress.done();
 	}
 
-	private boolean deFragmentDir(File dir, LongOpenHashSet regions, Progress progress) {
+	private DeFragmentResult deFragmentDir(File dir, LongOpenHashSet regions, Progress progress) {
 		if (dir == null) {
-			return false;
+			System.out.println("dir is null");
+			return new DeFragmentResult(0, 0, false);
 		}
 
 		progress.setMinimum(0);
@@ -269,8 +290,14 @@ public class Pruner {
 		progress.setIndeterminate(false);
 		progress.setMessage("DeFragmenting files in " + dir.getName());
 
+		int skippedChunks = 0;
+		int deletedChunks = 0;
+
 		for (long f : regions) {
+			System.out.println("defragmenting " + new Point(f));
 			if (selection.isRegionSelected(f)) {
+				System.out.println("skipped " + new Point(f));
+				skippedChunks += 1024;
 				progress.increment(1);
 				continue;
 			}
@@ -279,25 +306,27 @@ public class Pruner {
 			File regionFile = toFile(dir, region);
 
 			try {
-				ShortOpenHashSet selectedChunks = selection.getSelectedChunks(region);
+				ChunkSet selectedChunks = selection.getSelectedChunks(region);
 
 				Timer t = new Timer();
-				int pruned = deFragment(regionFile, selectedChunks);
-				if (pruned == -1) {
+				DeFragmentResult result = deFragment(regionFile, selectedChunks);
+				skippedChunks += result.skippedChunks();
+				deletedChunks += result.deletedChunks();
+				if (result.error()) {
 					progress.done();
-					return true;
+					return new DeFragmentResult(skippedChunks, deletedChunks, true);
 				}
-				LOGGER.info("Took {} to prune {} chunks in {}", t, pruned, regionFile);
+				LOGGER.info("Took {} to prune chunks in {} with result {}", t, regionFile, result);
 
 			} catch (IOException ex) {
-				if (errorHandler.handle(LOGGER, ex, "Failed to defragment mca file {}", regionFile)) {
+				if (errorHandler.handle(LOGGER, ex, "Failed to deFragment mca file {}", regionFile)) {
 					progress.done();
-					return true;
+					return new DeFragmentResult(skippedChunks, deletedChunks, true);
 				}
 			}
 			progress.increment(1);
 		}
-		return false;
+		return new DeFragmentResult(skippedChunks, deletedChunks, false);
 	}
 
 	private void applyRadius(Point chunk) {

@@ -10,8 +10,8 @@ public record Point(int x, int z) {
 		this((int) l, (int) (l >> 32));
 	}
 
-	public Point(short relativeChunk) {
-		this(relativeChunk, relativeChunk >> 5);
+	public Point(short chunkIndex) {
+		this(chunkIndex & 0x1F, chunkIndex >> 5);
 	}
 
 	public Point add(int x, int z) {
@@ -135,14 +135,14 @@ public record Point(int x, int z) {
 	}
 
 	// converts this absolute chunk coordinate into a relative chunk coordinate
-	public Point normalizeChunkInRegion() {
+	public Point asRelativeChunk() {
 		return new Point(x & 0x1F, z & 0x1F);
 	}
 
 	// returns a short containing relative chunk coordinates (0|0 to 31|31).
 	// only the first 1024 bits are populated which allows easy looping without having to convert.
-	public short getAsRelativeChunk() {
-		Point n = normalizeChunkInRegion();
+	public short asChunkIndex() {
+		Point n = asRelativeChunk();
 		return (short) (n.z << 5 | n.x & 0x1F);
 	}
 

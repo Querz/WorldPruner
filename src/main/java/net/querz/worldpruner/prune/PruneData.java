@@ -4,6 +4,7 @@ import net.querz.worldpruner.selection.Selection;
 import org.apache.commons.cli.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -22,16 +23,17 @@ public record PruneData(
 		long inhabitedTime,
 		int radius,
 		Selection whitelist,
-		boolean continueOnError) {
+		boolean continueOnError,
+		boolean whitelistOnly) {
 
 	private static final Logger LOGGER = LogManager.getLogger(PruneData.class);
 
-	public PruneData(WorldDirectory dir, long inhabitedTime, int radius, Selection whitelist, boolean continueOnError) {
-		this(dir.region, dir.poi, dir.entities, inhabitedTime, radius, whitelist, continueOnError);
+	public PruneData(WorldDirectory dir, long inhabitedTime, int radius, Selection whitelist, boolean continueOnError, boolean whitelistOnly) {
+		this(dir.region, dir.poi, dir.entities, inhabitedTime, radius, whitelist, continueOnError, whitelistOnly);
 	}
 
-	public PruneData(WorldDirectory dir, long inhabitedTime, int radius, Selection whitelist) {
-		this(dir, inhabitedTime, radius, whitelist, false);
+	public PruneData(WorldDirectory dir, long inhabitedTime, int radius, Selection whitelist, boolean whitelistOnly) {
+		this(dir, inhabitedTime, radius, whitelist, false, whitelistOnly);
 	}
 
 	public static final int MIN_RADIUS = 0;
@@ -113,10 +115,18 @@ public record PruneData(
 				.hasArg()
 				.desc("The path to whitelist CSV file")
 				.build());
+		options.addOption(Option.builder("l")
+				.longOpt("white-list-only")
+				.desc("Prune everything except the whitelist")
+				.build());
 
 		options.addOption(Option.builder("c")
 				.longOpt("continue-on-error")
 				.desc("If execution should continue if an error occurs")
+				.build());
+		options.addOption(Option.builder("d")
+				.longOpt("debug")
+				.desc("Enables debug logging to the log file")
 				.build());
 
 		CommandLineParser parser = new DefaultParser();
@@ -145,7 +155,12 @@ public record PruneData(
 				LOGGER.error("Could not find world at \"{}\"", worldDir.getAbsolutePath());
 				return null;
 			}
-			return new PruneData(world, inhabitedTime, radius, whitelist, line.hasOption("continue-on-error"));
+
+			if (line.hasOption("debug")) {
+				ThreadContext.put("dynamicLogLevel", "DEBUG");
+			}
+
+			return new PruneData(world, inhabitedTime, radius, whitelist, line.hasOption("c"), line.hasOption("l"));
 		} catch (ParseException | IllegalArgumentException e) {
 			LOGGER.error(e.getMessage());
 			printHelp(options);
