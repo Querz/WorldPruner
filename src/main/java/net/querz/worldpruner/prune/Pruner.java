@@ -280,7 +280,6 @@ public class Pruner {
 
 	private DeFragmentResult deFragmentDir(File dir, LongOpenHashSet regions, Progress progress) {
 		if (dir == null) {
-			System.out.println("dir is null");
 			return new DeFragmentResult(0, 0, false);
 		}
 
@@ -294,9 +293,7 @@ public class Pruner {
 		int deletedChunks = 0;
 
 		for (long f : regions) {
-			System.out.println("defragmenting " + new Point(f));
 			if (selection.isRegionSelected(f)) {
-				System.out.println("skipped " + new Point(f));
 				skippedChunks += 1024;
 				progress.increment(1);
 				continue;

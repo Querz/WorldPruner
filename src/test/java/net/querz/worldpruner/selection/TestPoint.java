@@ -58,17 +58,4 @@ public class TestPoint {
 			assertEquals(new Point(0, 0), p2);
 		}
 	}
-
-	@Test
-	void blah() {
-
-		for (int i = 0; i < 1024; i++) {
-			int cz = i >> 5;
-			int cx = i - cz * 32;
-
-			Point p = new Point(cx, cz);
-
-			System.out.println(p.asChunkIndex());
-		}
-	}
 }
