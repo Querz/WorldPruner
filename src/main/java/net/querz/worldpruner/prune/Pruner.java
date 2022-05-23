@@ -200,58 +200,61 @@ public class Pruner {
 		progress.setMessage("Indexing files");
 		loadAllFiles();
 
-		progress.setIndeterminate(false);
-		progress.setMinimum(0);
-		progress.setMaximum(allRegionFiles.size());
+		if (!pruneData.whitelistOnly()) {
 
-		// collect all chunks that need to be kept based on InhabitedTime
-		for (long f : allRegionFiles) {
-			Timer t = new Timer();
-			Point region = new Point(f);
-			File regionFile = toFile(pruneData.regionDir(), region);
+			progress.setIndeterminate(false);
+			progress.setMinimum(0);
+			progress.setMaximum(allRegionFiles.size());
 
-			// if the file is empty or only its header exists, we skip it
-			if (regionFile.exists() && regionFile.length() <= 8192) {
-				LOGGER.info("Skipped empty mca file {} with size {}", regionFile, regionFile.length());
-				continue;
-			}
+			// collect all chunks that need to be kept based on InhabitedTime
+			for (long f : allRegionFiles) {
+				Timer t = new Timer();
+				Point region = new Point(f);
+				File regionFile = toFile(pruneData.regionDir(), region);
 
-			MCAFile mcaFile;
-			try {
-				mcaFile = loadMCAFile(regionFile);
-			} catch (IOException ex) {
-				if (errorHandler.handle(LOGGER, ex, "Failed to load mca file {}", regionFile)) {
-					progress.done();
-					return;
+				// if the file is empty or only its header exists, we skip it
+				if (regionFile.exists() && regionFile.length() <= 8192) {
+					LOGGER.info("Skipped empty mca file {} with size {}", regionFile, regionFile.length());
+					continue;
 				}
-				progress.increment(1);
-				selection.addRegion(f);
-				continue;
-			}
 
-			for (Chunk chunk : mcaFile) {
-				if (chunk != null) {
-					structureManager.checkChunk(chunk);
-					// check InhabitedTime with radius
-					if (skipChunk(chunk)) {
-						Point point = new Point(chunk.getX(), chunk.getZ());
-						selection.addChunk(point);
-						applyRadius(point);
+				MCAFile mcaFile;
+				try {
+					mcaFile = loadMCAFile(regionFile);
+				} catch (IOException ex) {
+					if (errorHandler.handle(LOGGER, ex, "Failed to load mca file {}", regionFile)) {
+						progress.done();
+						return;
+					}
+					progress.increment(1);
+					selection.addRegion(f);
+					continue;
+				}
+
+				for (Chunk chunk : mcaFile) {
+					if (chunk != null) {
+						structureManager.checkChunk(chunk);
+						// check InhabitedTime with radius
+						if (skipChunk(chunk)) {
+							Point point = new Point(chunk.getX(), chunk.getZ());
+							selection.addChunk(point);
+							applyRadius(point);
+						}
 					}
 				}
+
+				LOGGER.info("Took {} to collect chunks in {}", t, regionFile);
+
+				progress.increment(1);
 			}
 
-			LOGGER.info("Took {} to collect chunks in {}", t, regionFile);
-
-			progress.increment(1);
+			LongOpenHashSet chunksToKeep = structureManager.calculateChunksToKeep();
+			if (chunksToKeep == null) {
+				progress.done();
+				return;
+			}
+			selection.addAll(chunksToKeep);
 		}
-
-		LongOpenHashSet chunksToKeep = structureManager.calculateChunksToKeep();
-		if (chunksToKeep == null) {
-			progress.done();
-			return;
-		}
-		selection.addAll(chunksToKeep);
 
 		LOGGER.info(selection.getStats());
 
@@ -277,6 +280,7 @@ public class Pruner {
 
 	private DeFragmentResult deFragmentDir(File dir, LongOpenHashSet regions, Progress progress) {
 		if (dir == null) {
+			System.out.println("dir is null");
 			return new DeFragmentResult(0, 0, false);
 		}
 
@@ -290,7 +294,9 @@ public class Pruner {
 		int deletedChunks = 0;
 
 		for (long f : regions) {
+			System.out.println("defragmenting " + new Point(f));
 			if (selection.isRegionSelected(f)) {
+				System.out.println("skipped " + new Point(f));
 				skippedChunks += 1024;
 				progress.increment(1);
 				continue;

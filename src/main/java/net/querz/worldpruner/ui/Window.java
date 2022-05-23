@@ -220,7 +220,7 @@ public final class Window extends JFrame {
 				selection = new Selection();
 			}
 
-			prune(worldDir, selection);
+			prune(worldDir, inhabitedTimeField.getDuration(), radiusField.getNumber(), selection, false);
 		});
 
 		pruneForWhitelist.addActionListener(e -> {
@@ -236,7 +236,7 @@ public final class Window extends JFrame {
 				return;
 			}
 
-			prune(worldDir, selection);
+			prune(worldDir, 0, 0, selection, true);
 		});
 
 		INSTANCE.getContentPane().add(panel);
@@ -259,18 +259,13 @@ public final class Window extends JFrame {
 		return worldDir;
 	}
 
-	private static void prune(PruneData.WorldDirectory worldDir, Selection selection) {
+	private static void prune(PruneData.WorldDirectory worldDir, long duration, int radius, Selection selection, boolean whitelistOnly) {
 
 		setFieldsEnabled(false);
 
 		new Thread(() -> {
 			try {
-				PruneData pruneData = new PruneData(
-						worldDir,
-						inhabitedTimeField.getDuration(),
-						radiusField.getNumber(),
-						selection
-				);
+				PruneData pruneData = new PruneData(worldDir, duration, radius, selection, whitelistOnly);
 				DialogErrorHandler errorHandler = new DialogErrorHandler(INSTANCE);
 				new Pruner(pruneData, errorHandler).prune(progressBar);
 				if (errorHandler.wasSuccessful()) {

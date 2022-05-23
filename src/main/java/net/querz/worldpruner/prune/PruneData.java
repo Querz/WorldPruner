@@ -23,16 +23,17 @@ public record PruneData(
 		long inhabitedTime,
 		int radius,
 		Selection whitelist,
-		boolean continueOnError) {
+		boolean continueOnError,
+		boolean whitelistOnly) {
 
 	private static final Logger LOGGER = LogManager.getLogger(PruneData.class);
 
-	public PruneData(WorldDirectory dir, long inhabitedTime, int radius, Selection whitelist, boolean continueOnError) {
-		this(dir.region, dir.poi, dir.entities, inhabitedTime, radius, whitelist, continueOnError);
+	public PruneData(WorldDirectory dir, long inhabitedTime, int radius, Selection whitelist, boolean continueOnError, boolean whitelistOnly) {
+		this(dir.region, dir.poi, dir.entities, inhabitedTime, radius, whitelist, continueOnError, whitelistOnly);
 	}
 
-	public PruneData(WorldDirectory dir, long inhabitedTime, int radius, Selection whitelist) {
-		this(dir, inhabitedTime, radius, whitelist, false);
+	public PruneData(WorldDirectory dir, long inhabitedTime, int radius, Selection whitelist, boolean whitelistOnly) {
+		this(dir, inhabitedTime, radius, whitelist, false, whitelistOnly);
 	}
 
 	public static final int MIN_RADIUS = 0;
@@ -114,6 +115,10 @@ public record PruneData(
 				.hasArg()
 				.desc("The path to whitelist CSV file")
 				.build());
+		options.addOption(Option.builder("l")
+				.longOpt("white-list-only")
+				.desc("Prune everything except the whitelist")
+				.build());
 
 		options.addOption(Option.builder("c")
 				.longOpt("continue-on-error")
@@ -155,7 +160,7 @@ public record PruneData(
 				ThreadContext.put("dynamicLogLevel", "DEBUG");
 			}
 
-			return new PruneData(world, inhabitedTime, radius, whitelist, line.hasOption("continue-on-error"));
+			return new PruneData(world, inhabitedTime, radius, whitelist, line.hasOption("c"), line.hasOption("l"));
 		} catch (ParseException | IllegalArgumentException e) {
 			LOGGER.error(e.getMessage());
 			printHelp(options);
