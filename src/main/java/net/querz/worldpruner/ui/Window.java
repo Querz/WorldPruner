@@ -248,6 +248,22 @@ public final class Window extends JFrame {
 		INSTANCE.setVisible(true);
 	}
 
+	private static boolean confirmPrune() {
+		JEditorPane pane = new JEditorPane();
+		pane.setContentType("text/html");
+		pane.setText("""
+                <body style="font-family: Sans-Serif; font-size: 12;">
+                    <b>You are about to prune chunks from your world.</b>
+                    <br/>
+                    <b>This process can <i>NOT</i> be undone, make sure you backed up your world!</b>
+                </body>
+                """);
+		pane.setOpaque(false);
+		pane.setEditable(false);
+		int result = JOptionPane.showConfirmDialog(INSTANCE, pane, "Start pruning?", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE);
+		return result == JOptionPane.OK_OPTION;
+	}
+
 	private static PruneData.WorldDirectory sanityCheck(JButton button) {
 		worldField.update();
 		whitelistField.update();
@@ -260,6 +276,10 @@ public final class Window extends JFrame {
 	}
 
 	private static void prune(PruneData.WorldDirectory worldDir, long duration, int radius, Selection selection, boolean whitelistOnly) {
+
+		if (!confirmPrune()) {
+			return;
+		}
 
 		setFieldsEnabled(false);
 
