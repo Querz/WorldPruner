@@ -25,8 +25,23 @@ public final class Window extends JFrame {
 
 	public static Window INSTANCE;
 
-	private JButton prune;
-	private JButton pruneForWhitelist;
+	private static JButton prune;
+	private static JButton pruneForWhitelist;
+
+	private static JLabel worldLabel;
+	private static FileTextField worldField;
+
+	private static JLabel inhabitedTimeLabel;
+	private static InhabitedTimeTextField inhabitedTimeField;
+
+	private static JLabel radiusLabel;
+	private static NumberTextField radiusField;
+
+	private static JLabel whitelistLabel;
+	private static FileTextField whitelistField;
+
+	private static ProgressBar progressBar;
+	private static Runnable pruneButtonValidator;
 
 	private Window() {
 	}
@@ -44,14 +59,12 @@ public final class Window extends JFrame {
 		INSTANCE.setMinimumSize(new Dimension(500, 250));
 
 		// icons
-		INSTANCE.setIconImages(INSTANCE.loadIcons());
+		INSTANCE.setIconImages(loadIcons());
 
 		JMenuBar menuBar = new JMenuBar();
 		JMenu info = new JMenu("Info");
 		JMenuItem about = new JMenuItem("About");
-		about.addActionListener(actionEvent -> {
-			AboutDialog.show(INSTANCE);
-		});
+		about.addActionListener(actionEvent -> AboutDialog.show(INSTANCE));
 		info.add(about);
 		menuBar.add(info);
 		INSTANCE.setJMenuBar(menuBar);
@@ -59,16 +72,16 @@ public final class Window extends JFrame {
 		JPanel panel = new JPanel();
 		panel.setLayout(new BorderLayout());
 
-		INSTANCE.prune = new JButton("Prune");
-		INSTANCE.prune.setAlignmentX(Component.CENTER_ALIGNMENT);
-		INSTANCE.pruneForWhitelist = new JButton("Prune for whitelist");
-		INSTANCE.pruneForWhitelist.setAlignmentX(Component.CENTER_ALIGNMENT);
+		prune = new JButton("Prune");
+		prune.setAlignmentX(Component.CENTER_ALIGNMENT);
+		pruneForWhitelist = new JButton("Prune for whitelist");
+		pruneForWhitelist.setAlignmentX(Component.CENTER_ALIGNMENT);
 
 		JPanel options = new JPanel();
 		SpringLayout springLayout = new SpringLayout();
 		options.setLayout(springLayout);
 
-		JLabel worldLabel = new JLabel("World: \u24D8");
+		worldLabel = new JLabel("World: \u24D8");
 		worldLabel.setOpaque(true);
 		addInfoDialog(worldLabel, """
 				<body style="font-family: Sans-Serif; font-size: 12;">
@@ -82,7 +95,7 @@ public final class Window extends JFrame {
 				</body>
 				""");
 
-		FileTextField worldField = new FileTextField(null, "Open World");
+		worldField = new FileTextField(null, "Open World");
 		worldField.setInvalidTooltip("Not a valid Minecraft world folder");
 		worldField.setFileValidator((s, f) -> {
 			if (!f.isDirectory()) {
@@ -99,31 +112,31 @@ public final class Window extends JFrame {
 		options.add(worldLabel);
 		options.add(worldField);
 
-		JLabel inhabitedTimeLabel = new JLabel("InhabitedTime: \u24D8");
+		inhabitedTimeLabel = new JLabel("InhabitedTime: \u24D8");
 		inhabitedTimeLabel.setOpaque(true);
 		addInfoDialog(inhabitedTimeLabel, """
 				<body style="font-family: Sans-Serif; font-size: 12;">
 					<span>The minimum InhabitedTime of a chunk for WorldPruner to <i>not</i> delete it.</span>
 					<br/>
 					<br/>
-					<span><b>Example:</b></span>
+					<span>Example:</span>
 					<br/>
-					<span>1 day 3 hours 5 minutes 30 seconds</span>
+					<span><b>1 day 3 hours 5 minutes 30 seconds</b></span>
 					<br/>
 					<br/>
 					<span>In recent versions of Minecraft, InhabitedTime is the <i>accumulated</i> time</span>
 					<br/>
-					<span>of all players who have spent any time in that chunk.</span>
+					<span>of all players who have spent any amount of time in that chunk.</span>
 				</body>
 				""");
 
-		InhabitedTimeTextField inhabitedTimeField = new InhabitedTimeTextField("5 minutes", 20);
+		inhabitedTimeField = new InhabitedTimeTextField("5 minutes", 20);
 		inhabitedTimeLabel.setLabelFor(inhabitedTimeField);
 		inhabitedTimeField.setHorizontalAlignment(JTextField.CENTER);
 		options.add(inhabitedTimeLabel);
 		options.add(inhabitedTimeField);
 
-		JLabel radiusLabel = new JLabel("Radius: \u24D8");
+		radiusLabel = new JLabel("Radius: \u24D8");
 		radiusLabel.setOpaque(true);
 		addInfoDialog(radiusLabel, """
 				<body style="font-family: Sans-Serif; font-size: 12;">
@@ -132,17 +145,16 @@ public final class Window extends JFrame {
 					<br/>
 					<span>The maximum allowed radius is <b>128</b>.</span>
 					<br/>
-					<span>The radius does not affect chunks containing structure data</span>
-					<span>but did not match the InhabitedTime condition</span>
+					<span>The radius <i>only</i> affects chunks that match the InhabitedTime condition.</span>
 				</body>
 				""");
-		NumberTextField radiusField = new NumberTextField(PruneData.MIN_RADIUS, PruneData.MAX_RADIUS, "0", 20);
+		radiusField = new NumberTextField(PruneData.MIN_RADIUS, PruneData.MAX_RADIUS, "0", 20);
 		radiusLabel.setLabelFor(radiusField);
 		radiusField.setHorizontalAlignment(JTextField.CENTER);
 		options.add(radiusLabel);
 		options.add(radiusField);
 
-		JLabel whitelistLabel = new JLabel("Whitelist: \u24D8");
+		whitelistLabel = new JLabel("Whitelist: \u24D8");
 		whitelistLabel.setOpaque(true);
 		addInfoDialog(whitelistLabel, """
 				<body style="font-family: Sans-Serif; font-size: 12;">
@@ -154,14 +166,14 @@ public final class Window extends JFrame {
 					<span>Custom whitelists can be created by following the format specification <a href="https://github.com/Querz/mcaselector/wiki/Selections#selection-file-format">here</a>.</span>
 				</body>
 				""");
-		FileTextField whitelistField = new FileTextField("csv", "Open Whitelist");
+		whitelistField = new FileTextField("csv", "Open Whitelist");
 		whitelistField.setInvalidTooltip("Not a csv file");
 		whitelistField.setFileValidator((s, f) -> s == null || s.isEmpty() || f.isFile() && f.getName().endsWith(".csv"));
 		whitelistLabel.setLabelFor(whitelistField);
 		options.add(whitelistLabel);
 		options.add(whitelistField);
 
-		Runnable pruneButtonValidator = () -> {
+		pruneButtonValidator = () -> {
 			prune.setEnabled(worldField.isValueValid() && inhabitedTimeField.isDurationValid() && whitelistField.isValueValid());
 			pruneForWhitelist.setEnabled(worldField.isValueValid() && whitelistField.isValueValid() && !whitelistField.getText().isEmpty());
 		};
@@ -177,57 +189,54 @@ public final class Window extends JFrame {
 		JPanel pruneBox = new JPanel();
 		pruneBox.setLayout(new BoxLayout(pruneBox, BoxLayout.Y_AXIS));
 
-		ProgressBar progressBar = new ProgressBar();
+		progressBar = new ProgressBar();
 		pruneBox.add(progressBar);
-		pruneBox.add(prune);
-		pruneBox.add(pruneForWhitelist);
+
+		JPanel pruneButtonBox = new JPanel();
+		pruneButtonBox.setLayout(new BoxLayout(pruneButtonBox, BoxLayout.X_AXIS));
+
+		pruneButtonBox.add(prune);
+		pruneButtonBox.add(new Box.Filler(new Dimension(5, 0), new Dimension(50, 0), new Dimension(100, 0)));
+		pruneButtonBox.add(pruneForWhitelist);
+
+		pruneBox.add(pruneButtonBox);
 
 		panel.add(pruneBox, BorderLayout.SOUTH);
 
 		prune.addActionListener(e -> {
 			// sanity check, in case someone deleted folders and didn't update the world text field
-			worldField.update();
-			whitelistField.update();
-			pruneButtonValidator.run();
-			PruneData.WorldDirectory worldDir = PruneData.WorldDirectory.parseWorldDirectory(new File(worldField.getText()));
-			if (!prune.isEnabled() || worldDir == null) {
+			PruneData.WorldDirectory worldDir;
+			if ((worldDir = sanityCheck(prune)) == null) {
 				return;
 			}
 
 			String csvString = whitelistField.getText();
 			Selection selection;
 			if (csvString != null && !csvString.isEmpty()) {
-				selection = getSelection(csvString);
-				if (selection == null) {
+				if ((selection = getSelection(csvString)) == null) {
 					return;
 				}
 			} else {
 				selection = new Selection();
 			}
 
-			prune(prune, worldField, inhabitedTimeField.getDuration(), radiusField, whitelistField, progressBar, worldDir, selection);
+			prune(worldDir, selection);
 		});
 
 		pruneForWhitelist.addActionListener(e -> {
 			// sanity check, in case someone deleted folders and didn't update the world text field
-			worldField.update();
-			whitelistField.update();
-			pruneButtonValidator.run();
-			PruneData.WorldDirectory worldDir = PruneData.WorldDirectory.parseWorldDirectory(new File(worldField.getText()));
-			if (!pruneForWhitelist.isEnabled() || worldDir == null) {
+			PruneData.WorldDirectory worldDir;
+			if ((worldDir = sanityCheck(pruneForWhitelist)) == null) {
 				return;
 			}
 
 			String csvString = whitelistField.getText();
 			Selection selection;
-			if (csvString != null && !csvString.isEmpty()) {
-				selection = getSelection(csvString);
-				if (selection == null) return;
-			} else {
+			if (csvString == null || csvString.isEmpty() || (selection = getSelection(csvString)) == null) {
 				return;
 			}
 
-			prune(prune, worldField, inhabitedTimeField.getDuration(), radiusField, whitelistField, progressBar, worldDir, selection);
+			prune(worldDir, selection);
 		});
 
 		INSTANCE.getContentPane().add(panel);
@@ -239,22 +248,20 @@ public final class Window extends JFrame {
 		INSTANCE.setVisible(true);
 	}
 
-	private static void prune(
-			JButton prune,
-			FileTextField worldField,
-			long inhabitedTime,
-			NumberTextField radiusField,
-			FileTextField whitelistField,
-			ProgressBar progressBar,
-			PruneData.WorldDirectory worldDir,
-			Selection selection) {
+	private static PruneData.WorldDirectory sanityCheck(JButton button) {
+		worldField.update();
+		whitelistField.update();
+		pruneButtonValidator.run();
+		PruneData.WorldDirectory worldDir = PruneData.WorldDirectory.parseWorldDirectory(new File(worldField.getText()));
+		if (!button.isEnabled() || worldDir == null) {
+			return null;
+		}
+		return worldDir;
+	}
 
-		INSTANCE.setFieldsEnabled(false,
-				worldField,
-				inhabitedTimeField,
-				radiusField,
-				whitelistField,
-				prune);
+	private static void prune(PruneData.WorldDirectory worldDir, Selection selection) {
+
+		setFieldsEnabled(false);
 
 		new Thread(() -> {
 			try {
@@ -275,14 +282,7 @@ public final class Window extends JFrame {
 				}
 			} finally {
 				try {
-					SwingUtilities.invokeAndWait(() -> {
-						INSTANCE.setFieldsEnabled(true,
-								worldField,
-								inhabitedTimeField,
-								radiusField,
-								whitelistField,
-								prune);
-					});
+					SwingUtilities.invokeAndWait(() -> setFieldsEnabled(true));
 				} catch (InterruptedException | InvocationTargetException ex) {
 					LOGGER.error("Failed to re-enable ui fields", ex);
 				}
@@ -301,17 +301,20 @@ public final class Window extends JFrame {
 		}
 	}
 
-	private void setFieldsEnabled(boolean enable, JComponent... components) {
-		for (JComponent component : components) {
-			component.setEnabled(enable);
-		}
+	private static void setFieldsEnabled(boolean enabled) {
+		worldField.setEnabled(enabled);
+		inhabitedTimeField.setEnabled(enabled);
+		radiusField.setEnabled(enabled);
+		whitelistField.setEnabled(enabled);
+		prune.setEnabled(enabled);
+		pruneForWhitelist.setEnabled(enabled);
 	}
 
-	private List<Image> loadIcons() {
+	private static List<Image> loadIcons() {
 		List<Image> images = new ArrayList<>();
 		for (int res = 16; res <= 128; res *= 2) {
 			try {
-				images.add(ImageIO.read(Objects.requireNonNull(getClass().getResource(String.format("/img/icon/%dx%d.png", res, res)))));
+				images.add(ImageIO.read(Objects.requireNonNull(INSTANCE.getClass().getResource(String.format("/img/icon/%dx%d.png", res, res)))));
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -344,7 +347,7 @@ public final class Window extends JFrame {
 						}
 					}
 				});
-				pane.setBackground(c.getBackground());
+				pane.setOpaque(false);
 				pane.setEditable(false);
 				JOptionPane.showMessageDialog(INSTANCE, pane, "Info", JOptionPane.PLAIN_MESSAGE);
 			}

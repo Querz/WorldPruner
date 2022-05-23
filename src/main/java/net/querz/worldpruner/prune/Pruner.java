@@ -323,8 +323,7 @@ public class Pruner {
 		return new DeFragmentResult(skippedChunks, deletedChunks, false);
 	}
 
-	private int applyRadius(Point chunk) {
-		int numSelected = 0;
+	private void applyRadius(Point chunk) {
 		Point min = chunk.sub(pruneData.radius());
 		Point max = chunk.add(pruneData.radius());
 		for (int x = min.x(); x <= max.x(); x++) {
@@ -333,13 +332,9 @@ public class Pruner {
 				int v = z - chunk.z();
 				double distSquared = h * h + v * v;
 				if (distSquared <= radiusSquared) {
-					if (!selection.isChunkSelected(x, z)) {
-						selection.addChunk(new Point(x, z));
-						numSelected++;
-					}
+					selection.addChunk(new Point(x, z));
 				}
 			}
 		}
-		return numSelected;
 	}
 }
