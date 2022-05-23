@@ -340,6 +340,10 @@ public class Selection {
 
 	@Override
 	public String toString() {
+		return getStats().toString();
+	}
+
+	public String toCSV() {
 		StringBuilder sb = new StringBuilder();
 		if (inverted) {
 			sb.append("inverted\n");

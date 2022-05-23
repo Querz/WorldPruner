@@ -74,8 +74,10 @@ public final class Window extends JFrame {
 
 		prune = new JButton("Prune");
 		prune.setAlignmentX(Component.CENTER_ALIGNMENT);
+		prune.setToolTipText("Prune everything below InhabitedTime with the given radius and except the whitelist");
 		pruneForWhitelist = new JButton("Prune for whitelist");
 		pruneForWhitelist.setAlignmentX(Component.CENTER_ALIGNMENT);
+		pruneForWhitelist.setToolTipText("Prune everything except the whitelist, ignoring InhabitedTime and radius");
 
 		JPanel options = new JPanel();
 		SpringLayout springLayout = new SpringLayout();
@@ -297,7 +299,10 @@ public final class Window extends JFrame {
 				}
 			} finally {
 				try {
-					SwingUtilities.invokeAndWait(() -> setFieldsEnabled(true));
+					SwingUtilities.invokeAndWait(() -> {
+						setFieldsEnabled(true);
+						pruneButtonValidator.run();
+					});
 				} catch (InterruptedException | InvocationTargetException ex) {
 					LOGGER.error("Failed to re-enable ui fields", ex);
 				}
