@@ -32,14 +32,16 @@ allows to operate the application from the command line.
 
 **Command line arguments:**
 
-| Argument(s)                | Default Value |Description|
-|----------------------------|---------------|------------|
-| `--world` `-w`             | *Required*    | The path to the world folder |
-| `--time` `-t`              | `0 seconds`   | The minimum time a chunk should have to be kept |
-| `--radius` `-r`            | `0`           | The radius of additional chunks preserved around matching chunks |
-| `--white-list` `-W`        |               | The path to whitelist CSV file |
-| `--continue-on-error` `-c` |               | If execution should continue if an error occurs |
-| `--help` `-h`              |               | Prints all available commandline options |
+| Argument(s)                | Default Value | Description                                                              |
+|----------------------------|---------------|--------------------------------------------------------------------------|
+| `--world` `-w`             | *Required*    | The path to the world folder                                             |
+| `--time` `-t`              | `0 seconds`   | The minimum time a chunk should have to be kept                          |
+| `--radius` `-r`            | `0`           | The radius of additional chunks preserved around matching chunks         |
+| `--white-list` `-W`        |               | The path to whitelist CSV file                                           |
+| `--continue-on-error` `-c` |               | If execution should continue if an error occurs                          |
+| `--white-list-only` `-l`   |               | Prune everything except the whitelist, requires `--white-list` to be set |
+| `--debug` `-d`             |               | Enables debug logging to the log file, also works for GUI mode           |
+| `--help` `-h`              |               | Prints all available commandline options                                 |
 
 **Examples:**
 
