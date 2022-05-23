@@ -26,7 +26,7 @@ public final class Window extends JFrame {
 	public static Window INSTANCE;
 
 	private static JButton prune;
-	private static JButton pruneForWhitelist;
+	private static JButton pruneExceptWhitelist;
 
 	private static JLabel worldLabel;
 	private static FileTextField worldField;
@@ -75,9 +75,9 @@ public final class Window extends JFrame {
 		prune = new JButton("Prune");
 		prune.setAlignmentX(Component.CENTER_ALIGNMENT);
 		prune.setToolTipText("Prune everything below InhabitedTime with the given radius and except the whitelist");
-		pruneForWhitelist = new JButton("Prune for whitelist");
-		pruneForWhitelist.setAlignmentX(Component.CENTER_ALIGNMENT);
-		pruneForWhitelist.setToolTipText("Prune everything except the whitelist, ignoring InhabitedTime and radius");
+		pruneExceptWhitelist = new JButton("Prune except whitelist");
+		pruneExceptWhitelist.setAlignmentX(Component.CENTER_ALIGNMENT);
+		pruneExceptWhitelist.setToolTipText("Prune everything except the whitelist, ignoring InhabitedTime and radius");
 
 		JPanel options = new JPanel();
 		SpringLayout springLayout = new SpringLayout();
@@ -177,7 +177,7 @@ public final class Window extends JFrame {
 
 		pruneButtonValidator = () -> {
 			prune.setEnabled(worldField.isValueValid() && inhabitedTimeField.isDurationValid() && whitelistField.isValueValid());
-			pruneForWhitelist.setEnabled(worldField.isValueValid() && whitelistField.isValueValid() && !whitelistField.getText().isEmpty());
+			pruneExceptWhitelist.setEnabled(worldField.isValueValid() && whitelistField.isValueValid() && !whitelistField.getText().isEmpty());
 		};
 
 		worldField.setOnUpdate(pruneButtonValidator);
@@ -199,7 +199,7 @@ public final class Window extends JFrame {
 
 		pruneButtonBox.add(prune);
 		pruneButtonBox.add(new Box.Filler(new Dimension(5, 0), new Dimension(50, 0), new Dimension(100, 0)));
-		pruneButtonBox.add(pruneForWhitelist);
+		pruneButtonBox.add(pruneExceptWhitelist);
 
 		pruneBox.add(pruneButtonBox);
 
@@ -225,10 +225,10 @@ public final class Window extends JFrame {
 			prune(worldDir, inhabitedTimeField.getDuration(), radiusField.getNumber(), selection, false);
 		});
 
-		pruneForWhitelist.addActionListener(e -> {
+		pruneExceptWhitelist.addActionListener(e -> {
 			// sanity check, in case someone deleted folders and didn't update the world text field
 			PruneData.WorldDirectory worldDir;
-			if ((worldDir = sanityCheck(pruneForWhitelist)) == null) {
+			if ((worldDir = sanityCheck(pruneExceptWhitelist)) == null) {
 				return;
 			}
 
@@ -327,7 +327,7 @@ public final class Window extends JFrame {
 		radiusField.setEnabled(enabled);
 		whitelistField.setEnabled(enabled);
 		prune.setEnabled(enabled);
-		pruneForWhitelist.setEnabled(enabled);
+		pruneExceptWhitelist.setEnabled(enabled);
 	}
 
 	private static List<Image> loadIcons() {

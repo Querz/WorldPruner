@@ -156,6 +156,11 @@ public record PruneData(
 				return null;
 			}
 
+			if (line.hasOption("white-list-only") && !line.hasOption("white-list")) {
+				LOGGER.error("No whitelist defined while trying to prune with whitelist only");
+				return null;
+			}
+
 			if (line.hasOption("debug")) {
 				ThreadContext.put("dynamicLogLevel", "DEBUG");
 			}
