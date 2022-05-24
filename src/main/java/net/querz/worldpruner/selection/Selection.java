@@ -144,6 +144,14 @@ public class Selection {
 		}
 	}
 
+	public boolean isAnyChunkInRegionSelected(long region) {
+		if (inverted) {
+			return !selection.containsKey(region) || selection.get(region) != null;
+		} else {
+			return selection.containsKey(region);
+		}
+	}
+
 	public ChunkSet getSelectedChunks(Point region) {
 		if (inverted) {
 			if (selection.containsKey(region.asLong())) {

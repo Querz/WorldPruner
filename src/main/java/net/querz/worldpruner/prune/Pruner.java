@@ -1,5 +1,6 @@
 package net.querz.worldpruner.prune;
 
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.querz.mca.Chunk;
 import net.querz.mca.MCAFile;
@@ -64,6 +65,11 @@ public class Pruner {
 		if (chunk == null || chunk.isEmpty()) {
 			return true;
 		}
+
+		if (pruneData.whitelistOnly() && selection.isChunkSelected(chunk.getX(), chunk.getZ())) {
+			return true;
+		}
+
 		if (chunk.getData().contains("Level", Tag.COMPOUND)) {
 			CompoundTag level = chunk.getData().getCompound("Level");
 			return level.getLongOrDefault("InhabitedTime", Long.MAX_VALUE) > pruneData.inhabitedTime();
@@ -200,61 +206,57 @@ public class Pruner {
 		progress.setMessage("Indexing files");
 		loadAllFiles();
 
-		if (!pruneData.whitelistOnly()) {
+		progress.setIndeterminate(false);
+		progress.setMinimum(0);
+		progress.setMaximum(allRegionFiles.size());
 
-			progress.setIndeterminate(false);
-			progress.setMinimum(0);
-			progress.setMaximum(allRegionFiles.size());
+		// collect all chunks that need to be kept based on InhabitedTime
+		for (long f : allRegionFiles) {
+			if (pruneData.whitelistOnly() && !selection.isAnyChunkInRegionSelected(f)) {
+				continue;
+			}
 
-			// collect all chunks that need to be kept based on InhabitedTime
-			for (long f : allRegionFiles) {
-				Timer t = new Timer();
-				Point region = new Point(f);
-				File regionFile = toFile(pruneData.regionDir(), region);
+			Timer t = new Timer();
+			Point region = new Point(f);
+			File regionFile = toFile(pruneData.regionDir(), region);
 
-				// if the file is empty or only its header exists, we skip it
-				if (regionFile.exists() && regionFile.length() <= 8192) {
-					LOGGER.info("Skipped empty mca file {} with size {}", regionFile, regionFile.length());
-					continue;
+			// if the file is empty or only its header exists, we skip it
+			if (regionFile.exists() && regionFile.length() <= 8192) {
+				LOGGER.info("Skipped empty mca file {} with size {}", regionFile, regionFile.length());
+				continue;
+			}
+
+			MCAFile mcaFile;
+			try {
+				mcaFile = loadMCAFile(regionFile);
+			} catch (IOException ex) {
+				if (errorHandler.handle(LOGGER, ex, "Failed to load mca file {}", regionFile)) {
+					progress.done();
+					return;
 				}
-
-				MCAFile mcaFile;
-				try {
-					mcaFile = loadMCAFile(regionFile);
-				} catch (IOException ex) {
-					if (errorHandler.handle(LOGGER, ex, "Failed to load mca file {}", regionFile)) {
-						progress.done();
-						return;
-					}
-					progress.increment(1);
-					selection.addRegion(f);
-					continue;
-				}
-
-				for (Chunk chunk : mcaFile) {
-					if (chunk != null) {
-						structureManager.checkChunk(chunk);
-						// check InhabitedTime with radius
-						if (skipChunk(chunk)) {
-							Point point = new Point(chunk.getX(), chunk.getZ());
-							selection.addChunk(point);
-							applyRadius(point);
-						}
-					}
-				}
-
-				LOGGER.info("Took {} to collect chunks in {}", t, regionFile);
-
 				progress.increment(1);
+				selection.addRegion(f);
+				continue;
 			}
 
-			LongOpenHashSet chunksToKeep = structureManager.calculateChunksToKeep();
-			if (chunksToKeep == null) {
-				progress.done();
-				return;
+			for (Chunk chunk : mcaFile) {
+				if (chunk != null) {
+					structureManager.checkChunk(chunk);
+					// check InhabitedTime with radius
+					if (!pruneData.whitelistOnly() && skipChunk(chunk)) {
+						Point point = new Point(chunk.getX(), chunk.getZ());
+						selection.addChunk(point);
+						applyRadius(point);
+					}
+				}
 			}
-			selection.addAll(chunksToKeep);
+
+			LOGGER.info("Took {} to collect chunks in {}", t, regionFile);
+			progress.increment(1);
 		}
+
+		LongOpenHashSet chunksToKeep = structureManager.calculateChunksToKeep();
+		selection.addAll(chunksToKeep);
 
 		LOGGER.info(selection.getStats());
 
