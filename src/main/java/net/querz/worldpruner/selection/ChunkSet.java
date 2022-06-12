@@ -32,6 +32,7 @@ public class ChunkSet implements ShortIterable, Serializable, Cloneable {
 		for (int i = 0; i < 16; i++) {
 			words[i] = 0L;
 		}
+		setBits = 0;
 	}
 
 	public boolean get(int index) {
